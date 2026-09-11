@@ -29,10 +29,20 @@
 
   <header class="topbar">
     <div class="topbar-in">
-      <button class="sitebrand" type="button" data-go="inicio" aria-label="Ir al inicio">
-        <span class="brand-logo" id="brand-logo"></span>
-        <span class="brand-name"><b id="brand-l1">Liga</b><small id="brand-l2"></small></span>
-      </button>
+      <div class="sitebrand">
+        <button class="brand-home" type="button" data-go="inicio" aria-label="Ir al inicio"><span class="brand-logo" id="brand-logo"></span></button>
+        <span class="brand-name">
+          <button class="brand-title" type="button" data-go="inicio"><b id="brand-l1">Liga</b></button>
+          <span class="brand-sub">
+            <span id="brand-l2"></span>
+            <label class="seasonsel" id="season-box" hidden title="Ver otra temporada">
+              <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+              <span class="sr-only">Temporada que se muestra</span>
+              <select id="season-select"></select>
+            </label>
+          </span>
+        </span>
+      </div>
       <nav id="nav" aria-label="Secciones"></nav>
       <div class="topbar-acts">
         <button class="iconbtn" id="theme" type="button" aria-pressed="false"><span id="theme-icon"></span><span class="sr-only" id="theme-label">Tema oscuro</span></button>
@@ -40,6 +50,14 @@
       </div>
     </div>
   </header>
+
+  <div class="pastbar" id="pastbar" hidden>
+    <div class="pastbar-in">
+      <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+      <span id="pasttext"></span>
+      <button type="button" class="pastback" data-viewseason="actual"><i class="fa-solid fa-arrow-rotate-right" aria-hidden="true"></i> <span id="pastback-txt">Volver a la temporada actual</span></button>
+    </div>
+  </div>
 
   <main>
     <div class="wrap" id="view"></div>
@@ -134,8 +152,9 @@ const BAT_COLS = [["JJ","JJ"],["VB","VB"],["H","H"],["D","2B"],["T","3B"],["HR",
    semana 4. Estados: F final · FF forfit 7-0 (ff = quién no se presentó) · P programado.
    c = categoría. */
 const TODAY = "2026-09-14";
-const WEEK1 = "2026-08-24";
-const WEEKS = 4;
+let WEEK1 = "2026-08-24";         // lunes de la semana 1; cambia al crear una temporada
+let WEEKS = 4;
+const BASE_WEEK1 = WEEK1, BASE_WEEKS = WEEKS;
 const TEAMS = {
   avanzados: ["Ni Parientes Somos","Parkers","Jolinos","Los Camarones","Caguamigos","Padres de Sandiego","Gallos","D Backs"],
   novatos: ["Caimanes de Villas","Rockin Roll","Bronx","Soja Sushi","Bandidos","Primos","Tamagochis","Sox","Muñekos","Pichichi Blue Jeys"],
@@ -368,7 +387,7 @@ function allResults(){
   return calGames()
     .filter(g => isPlayed(g) && g.as != null && g.d <= TODAY)
     .sort((x, y) => (y.d + y.h).localeCompare(x.d + x.h))
-    .map(g => ({ j:g.w, date:fmtDay(g.d), away:g.a, ar:g.as, home:g.b, hr:g.bs,
+    .map(g => ({ id:g.id, j:g.w, date:fmtDay(g.d), away:g.a, ar:g.as, home:g.b, hr:g.bs,
                  cat:g.c, fresh:!!g.fresh, ff:g.st === "FF" }));
 }
 let screen = "inicio";
@@ -378,6 +397,7 @@ let openTeam = null;             // la vista de Equipos arranca sin ningún equi
 const SCREENS = [
   { id:"inicio",     label:"Inicio",     icon:"fa-house" },
   { id:"standing",   label:"Standing",   icon:"fa-ranking-star" },
+  { id:"playoffs",   label:"Playoffs",   icon:"fa-trophy" },
   { id:"equipos",    label:"Equipos",    icon:"fa-people-group" },
   { id:"calendario", label:"Calendario", icon:"fa-calendar-days" },
   { id:"lideres",    label:"Líderes",    icon:"fa-medal" },
@@ -390,6 +410,8 @@ const ADMIN_TOOLS = [
   { id:"admequipos",    label:"Administrar equipos", icon:"fa-shield-halved",       desc:"Altas, logos, managers y jugadores de cada equipo." },
   { id:"inscripciones", label:"Inscripciones",       icon:"fa-money-check-dollar",  desc:"Qué equipos ya cubrieron su inscripción." },
   { id:"temporada",     label:"Temporada",           icon:"fa-trophy",              desc:"Juegos de temporada regular y equipos que pasan a playoffs." },
+  { id:"playoffs",       label:"Playoffs",           icon:"fa-sitemap",             desc:"Cierra la temporada regular, publica las series y captura sus resultados." },
+  { id:"nuevatemporada", label:"Nueva temporada",    icon:"fa-flag-checkered",      desc:"Arranca otra temporada: equipos que siguen, equipos de temporadas pasadas e inscripciones." },
   { id:"personalizar",  label:"Personalización",     icon:"fa-palette",             desc:"Logo, nombre de la liga y color del sitio." },
 ];
 
@@ -499,7 +521,7 @@ function renderNav(){
    pantalla con dos modos, pero en la barra de herramientas son dos opciones. */
 const navCurrent = id => id === "admin" ? ADMIN_SCREENS.includes(screen)
   : id === "corregir" ? screen === "capturar" && capMode === "corregir"
-  : id === "capturar" ? screen === "capturar" && capMode !== "corregir" : screen === id;
+  : id === "capturar" ? screen === "capturar" && capMode !== "corregir" : screen === id || (id === "calendario" && screen === "juego") || (id === "equipos" && screen === "equipo");
 
 function go(id){
   if (id === "corregir"){ id = "capturar"; capMode = "corregir"; if (!fixForm) fixForm = defaultFixForm(); }
@@ -525,8 +547,8 @@ function render(){
   const adminArea = ADMIN_SCREENS.includes(screen) && screen !== "admin";
   view.innerHTML = (adminArea ? adminBar() : "") + (locked ? viewLocked() : ({
     inicio: viewInicio, standing: viewStanding, equipos: viewEquipos,
-    calendario: viewCalendario, lideres: viewLideres, admin: viewAdmin, capturar: viewCapturar,
-    inscripciones: viewInscripciones, programar: viewProgramar, admequipos: viewAdminTeams, temporada: viewTemporada, personalizar: viewPersonalizar,
+    calendario: viewCalendario, lideres: viewLideres, juego: viewJuego, equipo: viewEquipo, playoffs: viewPlayoffs, admin: viewAdmin, capturar: viewCapturar,
+    inscripciones: viewInscripciones, programar: viewProgramar, admequipos: viewAdminTeams, temporada: viewTemporada, nuevatemporada: viewNuevaTemporada, personalizar: viewPersonalizar,
   })[screen]());
   if (!locked && screen === "capturar") recalcCapture();
   if (screen === "calendario") centerWeek();
@@ -590,6 +612,7 @@ function viewInicio(){
           <div class="hero2-cta">
             <button class="btn cta" data-go="standing"><i class="fa-solid fa-ranking-star" aria-hidden="true"></i> Ver standing</button>
             <button class="btn cta ghost" data-go="calendario"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Calendario</button>
+            <button class="btn cta ghost" data-go="playoffs"><i class="fa-solid fa-trophy" aria-hidden="true"></i> Playoffs</button>
           </div>
         </div>
       </div>
@@ -621,7 +644,7 @@ function viewInicio(){
           Cada categoría lleva su propio calendario.</div>`;
         return shown.map(g => {
           const awin = g.ar > g.hr;
-          return `<button class="rescard" data-calweek="${g.j}" data-calcatgo="${g.cat}">
+          return `<button class="rescard" data-viewgame="${g.id}" title="Ver el juego">
             <span class="when">${g.fresh ? `<span class="fresh">Recién capturado</span> · ` : g.ff ? `<span class="ffmark">Forfit</span> · ` : ""}Semana ${g.j} · ${g.date}
               <span class="catbadge">${esc(catName(g.cat))}</span></span>
             <span class="row ${awin ? "win" : "lose"}">${esc(g.away)} <b class="sc num">${g.ar}</b></span>
@@ -726,7 +749,7 @@ function viewStanding(){
           </table>
         </div>
         <p class="standfoot">${P ? `<span class="cutkey" aria-hidden="true"></span>Zona de playoffs: clasifican los ${P} primeros${
-          sortKey === "default" ? "" : " (la línea se ve con el orden de la liga)"} · ` : ""}Temporada regular de ${SEASON.games} juegos por equipo</p>
+          sortKey === "default" ? "" : " (la línea se ve con el orden de la liga)"} · ` : ""}Temporada regular de ${SEASON.games} juegos por equipo${P ? ` · <button type="button" class="linkbtn" data-go="playoffs">Ver playoffs →</button>` : ""}</p>
       </div>
 
       <div class="note">
@@ -744,7 +767,7 @@ function viewEquipos(){
   const openList = openCat ? ordered(openCat) : [];
   const t = openList.find(x => x.team === openTeam);
   const posIn = (n, tbl) => tbl.findIndex(x => x.team === n) + 1;
-  const isCaimanes = appMode === "demo" && openTeam === STATS_TEAM;
+  const isCaimanes = appMode === "demo" && !seasonsCreated && !viewingSeason && openTeam === STATS_TEAM;
   const total = Object.values(TEAMS).flat().length;
   return `
   <div class="screen">
@@ -774,54 +797,239 @@ function viewEquipos(){
       <button class="btn" style="margin-top:8px">+ Inscribir equipo</button>
     </div></div>`}
 
-    ${!t ? `
-    <div class="panel"><div class="empty">
-      <strong>Elige un equipo</strong>
-      <span>Toca cualquiera para ver su récord, su roster y sus estadísticas de bateo.</span>
-    </div></div>` : `
-    <div class="panel">
-      <div class="panel-h">
-        <span class="teamhead">
-          ${TEAM_LOGOS[openTeam]
-            ? `<span class="big"><img src="${TEAM_LOGOS[openTeam]}" alt=""></span>`
-            : crest(openTeam)}
-          <span class="tname">
-            <h2 class="display">${esc(openTeam)}</h2>
-            <span class="mgr">Manager · <b>${esc(managerOf(openTeam))}</b></span>
-          </span>
-        </span>
-        <span class="meta">${esc(catName(openCat))} · ${t.JG}-${t.JP} · ${posIn(openTeam, openList)}º de ${openList.length} · ${t.CF} CF / ${t.CC} CC</span>
+  </div>`;
+}
+
+/* ---------------- estadísticas de bateo ordenables ---------------- */
+let statSort = { key: "AVG", dir: -1 };  // columna y sentido de la tabla de bateo
+
+function batStatsTable(team, teamJJ){
+  const val = (p, k) => k === "AVG" ? (p.VB ? p.H / p.VB : 0) : k === "name" ? p.name : p[k];
+  const rows = [...CAIMANES_ROSTER].sort((a, b) => {
+    const x = val(a, statSort.key), y = val(b, statSort.key);
+    const c = typeof x === "string" ? x.localeCompare(y) : x - y;
+    return c * statSort.dir || a.name.localeCompare(b.name);
+  });
+  const cols = [["name", "Jugador"], ...BAT_COLS, ["AVG", "AVG"]];
+  const th = ([k, label]) => {
+    const on = statSort.key === k;
+    return `<th class="${k === "name" ? "l" : ""}"${on ? ` aria-sort="${statSort.dir < 0 ? "descending" : "ascending"}"` : ""}>
+      <button type="button" class="sortbtn" data-statsort="${k}" title="Ordenar por ${esc(label)}">${esc(label)}${on ? `<i class="fa-solid fa-caret-${statSort.dir < 0 ? "down" : "up"}" aria-hidden="true"></i>` : ""}</button></th>`;
+  };
+  const cell = (k, content, cls = "num") => `<td class="${cls}${statSort.key === k ? " sorted" : ""}">${content}</td>`;
+  const sum = k => CAIMANES_ROSTER.reduce((a, p) => a + p[k], 0);
+  return `<p class="sorthint">Toca una columna para ordenar por esa estadística; otra vez para invertir el orden.</p>
+    <div class="tablewrap"><table class="box stats">
+      <thead><tr>${cols.map(th).join("")}</tr></thead>
+      <tbody>${rows.map(p => `<tr>
+        ${cell("name", `${esc(p.name)}${p.name === MANAGERS[team] ? `<span class="mgrtag">Manager</span>` : ""}`, "l")}
+        ${BAT_COLS.map(c => cell(c[0], p[c[0]])).join("")}
+        ${cell("AVG", fmtPct(p.VB ? p.H / p.VB : 0), "avg")}
+      </tr>`).join("")}</tbody>
+      <tfoot><tr>
+        <td class="l">Totales del equipo</td>
+        ${BAT_COLS.map(c => `<td class="num">${c[0] === "JJ" ? teamJJ : sum(c[0])}</td>`).join("")}
+        <td class="num">${fmtPct(sum("H") / sum("VB"))}</td>
+      </tr></tfoot>
+    </table></div>`;
+}
+
+/* ---------------- página de un equipo ---------------- */
+let teamBack = "equipos";        // pantalla a la que regresa "Volver" desde la página de un equipo
+
+function openTeamPage(team){
+  if (screen !== "equipo") teamBack = screen;
+  openTeam = team;
+  teamCat = categoryOf(team) || teamCat;
+  screen = "equipo";
+  changedTeams = [];
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+function viewEquipo(){
+  const team = openTeam, cat = team ? categoryOf(team) : null;
+  if (!cat) return `<div class="screen"><div class="panel"><div class="empty">
+      <strong>No encontré este equipo</strong>
+      <span>No está inscrito en la temporada ${esc(LEAGUE.season)}.</span>
+      <button class="btn" data-go="equipos" style="margin-top:8px">Ver todos los equipos</button>
+    </div></div></div>`;
+  const table = rankTable(cat);
+  const i = table.findIndex(r => r.team === team), t = table[i];
+  const dif = t.CF - t.CC;
+  const ps = playoffStatus(cat)[team];
+  const games = calGames().filter(g => g.a === team || g.b === team).sort((x, y) => (x.d + x.h).localeCompare(y.d + y.h));
+  const last = games.filter(isPlayed).slice(-5).map(g => { const ws = winnerSide(g); return !ws ? "e" : ws === (g.a === team ? "a" : "b") ? "g" : "p"; });
+  const next = games.find(g => g.st === "P" && g.d >= TODAY);
+  const isCaimanes = appMode === "demo" && !seasonsCreated && !viewingSeason && team === STATS_TEAM;
+  const roster = ROSTERS[team];
+  const logo = TEAM_LOGOS[team]
+    ? `<span class="tp-logo"><img src="${TEAM_LOGOS[team]}" alt="Logo de ${esc(team)}"></span>`
+    : `<span class="tp-logo crestwrap">${crest(team)}</span>`;
+  const rosterHtml = isCaimanes ? batStatsTable(team, t.JJ)
+    : roster ? rosterList(team) : `
+      <div class="empty">
+        <strong>Roster pendiente de captura</strong>
+        <span>${esc(managerOf(team))}, manager de ${esc(team)}, todavía no registra su plantilla.<br>Sin roster, el equipo aparece en la tabla pero no en los líderes individuales.</span>
+      </div>`;
+  return `<div class="screen">
+    <div class="gp-top">
+      <button type="button" class="btn ghost" data-teamback><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</button>
+      <button type="button" class="btn ghost" data-go="equipos"><i class="fa-solid fa-people-group" aria-hidden="true"></i> Todos los equipos</button>
+    </div>
+
+    <section class="tp-hero">
+      <div class="hero2-bg" aria-hidden="true"></div>
+      <div class="tp-in">
+        ${logo}
+        <div class="tp-text">
+          <p class="hero2-kicker"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> ${esc(catName(cat))} · Temporada ${esc(LEAGUE.season)}</p>
+          <h1>${esc(team)}</h1>
+          <p class="tp-mgr">Manager · <b>${esc(managerOf(team))}</b>${ps ? `<span class="pstag ${ps}">${ps === "in" ? "Clasificado" : "Eliminado"}</span>` : ""}</p>
+          ${last.length ? `<p class="tp-streak">Últimos ${last.length}<span class="streak">${last.map(x => `<i class="gres ${x}">${x.toUpperCase()}</i>`).join("")}</span></p>` : ""}
+        </div>
       </div>
-      ${isCaimanes ? `
-        <div class="tablewrap"><table class="box">
-          <thead><tr>
-            <th class="l">Jugador</th>
-            ${BAT_COLS.map(c => `<th>${c[1]}</th>`).join("")}
-            <th>AVG</th>
-          </tr></thead>
-          <tbody>
-            ${[...CAIMANES_ROSTER].sort((a,b) => b.H / b.VB - a.H / a.VB).map(p => `<tr>
-              <td class="l">${esc(p.name)}${p.name === MANAGERS[openTeam] ? `<span class="mgrtag">Manager</span>` : ""}</td>
-              ${BAT_COLS.map(c => `<td class="num">${p[c[0]]}</td>`).join("")}
-              <td class="avg">${fmtPct(p.H / p.VB)}</td>
-            </tr>`).join("")}
-          </tbody>
-          <tfoot><tr>
-            <td class="l">Totales del equipo</td>
-            ${BAT_COLS.map(c => `<td class="num">${
-              c[0] === "JJ" ? t.JJ : CAIMANES_ROSTER.reduce((a,p) => a + p[c[0]], 0)
-            }</td>`).join("")}
-            <td class="num">${fmtPct(
-              CAIMANES_ROSTER.reduce((a,p) => a + p.H, 0) /
-              CAIMANES_ROSTER.reduce((a,p) => a + p.VB, 0))}</td>
-          </tr></tfoot>
-        </table></div>` : ROSTERS[openTeam] ? rosterList(openTeam) : `
-        <div class="empty">
-          <strong>Roster pendiente de captura</strong>
-          <span>${esc(managerOf(openTeam))}, manager de ${esc(openTeam)}, todavía no registra su plantilla.<br>Sin roster, el equipo aparece en la tabla pero no en los líderes individuales.</span>
-          <button class="btn" style="margin-top:8px">Enviar recordatorio a ${esc(managerOf(openTeam).split(" ")[0])}</button>
-        </div>`}
-    </div>`}
+      <div class="hero2-stats tp-stats">
+        <div><b class="num">${i + 1}º</b><span>de ${table.length} en ${esc(catName(cat))}</span></div>
+        <div><b class="num">${t.JG}-${t.JP}${t.JE ? `-${t.JE}` : ""}</b><span>Récord</span></div>
+        <div><b class="num">${t.JJ}<small>/${SEASON.games}</small></b><span>Juegos jugados</span></div>
+        <div><b class="num">${t.CF}</b><span>Carreras a favor</span></div>
+        <div><b class="num">${dif > 0 ? "+" : ""}${dif}</b><span>Diferencia</span></div>
+      </div>
+    </section>
+
+    ${next ? `<div class="note tp-next">
+      <span class="tag">Próximo juego</span>
+      <span>${next.d === TODAY ? "Hoy" : `${DIAS[parseD(next.d).getUTCDay()]} ${fmtDay(next.d)}`} · ${next.h} · vs <b>${esc(next.a === team ? next.b : next.a)}</b> · ${esc(fieldOf(next))}</span>
+      <button type="button" class="linkbtn" data-viewgame="${next.id}">Ver juego →</button>
+    </div>` : ""}
+
+    <section class="panel">
+      <div class="panel-h"><h2 class="display">${isCaimanes ? "Estadísticas de bateo" : "Roster"}</h2><span class="meta">${roster ? plural(roster.length, "jugador", "jugadores") : "Sin roster"}</span></div>
+      ${rosterHtml}
+    </section>
+
+    ${teamGamesPanel(team)}
+  </div>`;
+}
+
+/* ---------------- página de un juego e historial de cada equipo ---------------- */
+let viewGameId = null;           // juego abierto en su página
+let gameBack = "calendario";     // pantalla a la que regresa "Volver"
+
+function openGamePage(id){
+  if (screen !== "juego") gameBack = screen;
+  viewGameId = id;
+  screen = "juego";
+  changedTeams = [];
+  render();
+  window.scrollTo({ top: 0 });
+}
+
+/* Resultado de un juego visto desde un equipo: G/P/E con marcador, o su estado. */
+function resultFor(team, g){
+  const me = g.a === team ? "a" : "b", them = me === "a" ? "b" : "a";
+  if (g.st === "NJ") return `<span class="gres nj">No se jugó</span>`;
+  if (!isPlayed(g)) return `<span class="gres prog">${g.d === TODAY ? "Hoy" : g.d < TODAY ? "Sin resultado" : "Programado"}</span>`;
+  const ws = winnerSide(g);
+  const k = !ws ? "e" : ws === me ? "g" : "p";
+  return `<span class="gres ${k}">${k.toUpperCase()}</span>${g.as == null ? "" : `<b class="num">${g[me + "s"]}–${g[them + "s"]}</b>`}${g.st === "FF" ? `<small>forfit</small>` : ""}`;
+}
+
+function teamGameRows(team, games){
+  return `<ul class="gamelist">${games.map(g => {
+    const them = g.a === team ? g.b : g.a;
+    return `<li>
+      <span class="gl-when"><b>${DIAS[parseD(g.d).getUTCDay()].slice(0, 3)} ${fmtDay(g.d)}</b><small>Semana ${g.w} · ${g.h}</small></span>
+      <span class="gl-opp"><small>vs</small>${crest(them)}<span>${esc(them)}</span></span>
+      <span class="gl-res">${resultFor(team, g)}</span>
+      <button type="button" class="gact" data-viewgame="${g.id}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Ver juego</button>
+    </li>`;
+  }).join("")}</ul>`;
+}
+
+function teamGamesPanel(team){
+  const games = calGames().filter(g => g.a === team || g.b === team).sort((x, y) => (x.d + x.h).localeCompare(y.d + y.h));
+  const played = games.filter(isPlayed);
+  const last = played.slice(-5).map(g => { const ws = winnerSide(g); return !ws ? "e" : ws === (g.a === team ? "a" : "b") ? "g" : "p"; });
+  const upcoming = games.filter(g => g.st === "P" && g.d >= TODAY).length;
+  return `<section class="panel" id="team-games">
+    <div class="panel-h">
+      <h2 class="display">Juegos de la temporada ${esc(LEAGUE.season)}</h2>
+      <span class="meta">${plural(played.length, "jugado", "jugados")}${upcoming ? ` · ${upcoming} por jugar` : ""}${last.length
+        ? ` · últimos ${last.length}: <span class="streak">${last.map(x => `<i class="gres ${x}">${x.toUpperCase()}</i>`).join("")}</span>` : ""}</span>
+    </div>
+    ${games.length ? teamGameRows(team, games)
+      : `<div class="empty"><strong>Sin juegos todavía</strong><span>Cuando se programe su primer juego, aparece aquí.</span></div>`}
+  </section>`;
+}
+
+function viewJuego(){
+  const g = calGames().find(x => x.id === viewGameId);
+  if (!g) return `<div class="screen"><div class="panel"><div class="empty">
+      <strong>No encontré este juego</strong><span>Puede que se haya eliminado del calendario.</span>
+      <button class="btn" data-go="calendario" style="margin-top:8px">Ir al calendario</button>
+    </div></div></div>`;
+  const played = isPlayed(g), ws = played ? winnerSide(g) : null;
+  const box = g.st === "F" ? boxOf(g) : null;
+  const table = rankTable(g.c);
+  const recOf = team => {
+    const i = table.findIndex(r => r.team === team), r = table[i];
+    return r ? `${r.JG}-${r.JP}${r.JE ? `-${r.JE}` : ""} · ${i + 1}º en ${catName(g.c)}` : catName(g.c);
+  };
+  const status = g.st === "F" ? ["", "Final"] : g.st === "FF" ? ["ff", "Forfit"] : g.st === "NJ" ? ["nj", "No se jugó"]
+    : g.d === TODAY ? ["hoy", "Hoy"] : g.d < TODAY ? ["pend", "Sin resultado"] : ["prog", "Programado"];
+  const side = s => `<button type="button" class="gp-team${ws ? (ws === s ? " win" : " lose") : ""}" data-team="${esc(g[s])}" title="Ver a ${esc(g[s])}">
+      ${crest(g[s])}<b>${esc(g[s])}</b><small>${esc(recOf(g[s]))}</small></button>`;
+  const score = played && g.as != null
+    ? `<span class="gp-score num"><span class="${ws === "b" ? "lose" : ""}">${g.as}</span><i>–</i><span class="${ws === "a" ? "lose" : ""}">${g.bs}</span></span>`
+    : `<span class="gp-score vs">VS</span>`;
+  const canEdit = !isLocked() && !isVisitor();
+  const adminBtn = !canEdit ? ""
+    : g.st === "P" ? (g.d <= TODAY ? `<button type="button" class="btn primary" data-capture="${g.id}"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Capturar resultado</button>` : "")
+    : `<button type="button" class="btn" data-fixgame="${g.id}"><i class="fa-solid fa-rotate-left" aria-hidden="true"></i> Corregir</button>`;
+  const notes = [
+    g.st === "FF" ? `${g[g.ff]} no se presentó: el juego cuenta 7–0 para su rival.` : "",
+    g.st === "NJ" ? `No se jugó (${g.why}). Queda por reprogramar.` : "",
+    g.st === "F" && g.as == null ? "El resultado se registró sin marcador." : "",
+    g.baja ? `${g[g.baja]} se dio de baja; el resultado se conserva para su rival.` : "",
+    g.fixed && g.fixed.reason ? `Resultado corregido por el administrador: ${g.fixed.reason}.` : "",
+  ].filter(Boolean);
+  const h2h = calGames()
+    .filter(x => x.id !== g.id && ((x.a === g.a && x.b === g.b) || (x.a === g.b && x.b === g.a)))
+    .sort((x, y) => (x.d + x.h).localeCompare(y.d + y.h));
+  const emptySheet = g.st === "F"
+    ? ["Se capturó solo el marcador", "Cuando el administrador capture el box score, aquí aparecen el bateo y el pitcheo de los dos equipos."]
+    : g.st === "P" ? ["Todavía no hay resultado", "Cuando se capture el juego, aquí aparece su hoja de anotación."]
+    : ["Sin hoja de anotación", g.st === "FF" ? "Un forfit no lleva bateo ni pitcheo." : "El juego no se jugó."];
+  return `<div class="screen">
+    <div class="gp-top">
+      <button type="button" class="btn ghost" data-gameback><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Volver</button>
+      ${adminBtn}
+    </div>
+
+    <section class="gp-hero">
+      <div class="hero2-bg" aria-hidden="true"></div>
+      <div class="gp-meta">
+        <span class="catbadge">${esc(catName(g.c))}</span>
+        <span><i class="fa-solid fa-calendar-day" aria-hidden="true"></i> Semana ${g.w} · ${DIAS[parseD(g.d).getUTCDay()]} ${fmtDay(g.d)} · ${g.h}</span>
+        <span><i class="fa-solid fa-location-dot" aria-hidden="true"></i> ${esc(fieldOf(g))}</span>
+        <span class="stp ${status[0]}">${status[1]}</span>
+      </div>
+      <div class="gp-board">${side("a")}${score}${side("b")}</div>
+      ${notes.length ? `<div class="gp-notes">${notes.map(n => `<p><i class="fa-solid fa-circle-info" aria-hidden="true"></i>${esc(n)}</p>`).join("")}</div>` : ""}
+    </section>
+
+    <section class="panel">
+      <div class="panel-h"><h2 class="display">Hoja de anotación</h2><span class="meta">${box ? "Marcador, bateo y pitcheo" : ""}</span></div>
+      ${box ? `<div class="sheet gp-sheet">${boxTables(g, box)}</div>`
+        : `<div class="empty"><strong>${emptySheet[0]}</strong><span>${emptySheet[1]}</span></div>`}
+    </section>
+
+    <section class="panel">
+      <div class="panel-h"><h2 class="display">Entre ellos</h2><span class="meta">Otros juegos de ${esc(g.a)} contra ${esc(g.b)} esta temporada</span></div>
+      ${h2h.length ? teamGameRows(g.a, h2h) : `<div class="empty"><strong>Es su único enfrentamiento de la temporada</strong></div>`}
+    </section>
   </div>`;
 }
 
@@ -836,7 +1044,7 @@ const DAY_MS = 864e5;
 const parseD = s => new Date(s + "T12:00:00Z");
 const fmtDay = s => { const d = parseD(s); return `${d.getUTCDate()} ${MESES[d.getUTCMonth()]}`; };
 const weekOf = s => Math.floor((parseD(s) - parseD(WEEK1)) / (7 * DAY_MS)) + 1;
-const TODAY_WEEK = weekOf(TODAY);
+let TODAY_WEEK = weekOf(TODAY);
 const isPlayed = g => g.st === "F" || g.st === "FF";
 const listJoin = xs => xs.length > 1 ? `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}` : (xs[0] || "");
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
@@ -912,7 +1120,7 @@ const nextGames = () => calGames()
 
 function gameSide(g, side, ws){
   const cls = ws ? (ws === side ? " win" : " lose") : "";
-  return `<span class="gteam ${side}${cls}">${crest(g[side])}<span class="nm">${esc(g[side])}</span></span>`;
+  return `<button type="button" class="gteam ${side}${cls}" data-team="${esc(g[side])}" title="Ver a ${esc(g[side])}">${crest(g[side])}<span class="nm">${esc(g[side])}</span></button>`;
 }
 
 function gameRow(g, showCat){
@@ -927,9 +1135,10 @@ function gameRow(g, showCat){
   }
 
   const canEdit = !isLocked() && !isVisitor();
-  const sheetBtn = g.st === "F" && boxOf(g)
-    ? `<button class="linkbtn" data-game="${g.id}" aria-expanded="${openGame === g.id}">${openGame === g.id ? "Ocultar hoja de anotación" : "Ver hoja de anotación"}</button>` : "";
+  const sheetBtn = "";   // la hoja de anotación vive en la página del juego
   const acts = [];
+  if (isPlayed(g) || g.st === "NJ" || g.d < TODAY)
+    acts.push(`<button class="gact" data-viewgame="${g.id}"><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Ver juego</button>`);
   let st;
   if (g.fresh && g.st === "F"){
     st = `<span class="stp hoy">Recién capturado</span>${sheetBtn}`;
@@ -1053,9 +1262,10 @@ function viewCalendario(){
         ${Array.from({ length: calWeeks() }, (_, i) => i + 1).map(w => {
           const dots = games.filter(g => g.w === w)
             .map(g => `<i class="${({ F:"f", FF:"ff", NJ:"nj", P:"" })[g.st]}"></i>`).join("");
-          return `<button class="wk${w === TODAY_WEEK ? " now" : ""}" data-week="${w}" aria-pressed="${w === wk}">
+          const now = w === TODAY_WEEK && !viewingSeason;
+          return `<button class="wk${now ? " now" : ""}" data-week="${w}" aria-pressed="${w === wk}">
             <span class="wn">Semana ${w}</span>
-            <span class="wd">${weekRange(w)}${w === TODAY_WEEK ? " · hoy" : ""}</span>
+            <span class="wd">${weekRange(w)}${now ? " · hoy" : ""}</span>
             <span class="wdots" aria-hidden="true">${dots}</span>
           </button>`;
         }).join("")}
@@ -1065,7 +1275,7 @@ function viewCalendario(){
 
     <div class="weeksum">
       <span class="ttl">Semana ${wk}</span><span>${weekRange(wk)}</span>
-      ${wk === TODAY_WEEK ? `<span class="stp hoy">Semana en curso</span>` : ""}
+      ${wk === TODAY_WEEK && !viewingSeason ? `<span class="stp hoy">Semana en curso</span>` : ""}
       ${summary.length ? `<span class="sep">·</span><span>${summary.join(" · ")}</span>` : ""}
     </div>
 
@@ -1101,7 +1311,7 @@ function centerWeek(){
 
 function viewLideres(){
   const cat = CATEGORIES.find(c => c.id === leadCat) || mainCat();
-  const hasBox = appMode === "demo" && cat.id === mainCat().id;   // el único roster con boxscores de ejemplo
+  const hasBox = appMode === "demo" && !seasonsCreated && !viewingSeason && cat.id === mainCat().id;   // el único roster con boxscores de ejemplo
   const card = (title, unit, rows) => `
     <div class="lead">
       <h3 class="display">${title} <span>${unit}</span></h3>
@@ -1265,6 +1475,7 @@ function bx(){ return (screen === "capturar" && capMode === "corregir" && fixFor
 /* Box score vigente de un juego: la última corrección que lo trae, o la captura de la sesión. */
 function boxOf(g){
   if (!g) return null;
+  if (SEASON_BOXES[g.id]) return SEASON_BOXES[g.id];
   for (let i = corrections.length - 1; i >= 0; i--) if (corrections[i].id === g.id && corrections[i].box) return corrections[i].box;
   if (captured && captured.id === g.id && captured.sides) return { sides: captured.sides, pitch: captured.pitch || { a: [], b: [] }, innings: captured.innings };
   return null;
@@ -1279,7 +1490,7 @@ function boxChanged(g, box){
 /* Orden al bat en blanco con el roster, para capturar el box score de un juego que solo tenía marcador. */
 function blankLineup(team){
   const names = rosterOf(team);
-  return names.length ? GENERIC_POS.map((pos, i) => ({ entries: [newEntry(names[i] || "", pos)] })) : [];
+  return names.length ? GENERIC_POS.map(pos => ({ entries: [newEntry("", pos)] })) : [];
 }
 /* El marcador de la corrección manda sobre las carreras con que se revisa el box score. */
 function syncFixBox(f){
@@ -1980,6 +2191,8 @@ function viewTemporada(){
       </div>
     </div>
 
+    ${seasonNowPanel()}
+
     <div class="panel">
       <div class="panel-h"><h2 class="display">Temporada regular</h2><span class="meta">Igual para todas las categorías</span></div>
       <div class="rulebody">
@@ -1996,11 +2209,777 @@ function viewTemporada(){
     <p class="section-label">Playoffs por categoría</p>
     <div class="seasongrid">${CATEGORIES.map(seasonCard).join("")}</div>
 
+    ${seasonArchivePanel()}
+
     <div class="note">
       <span class="tag">En la tabla</span>
       <span>Cada categoría muestra su zona de playoffs. Un equipo aparece como <b>Clasificado</b> cuando ya no lo pueden alcanzar en juegos ganados, y como <b>Eliminado</b> cuando ya no le alcanzan los juegos que le quedan.</span>
     </div>
   </div>`;
+}
+
+/* ---------------- nueva temporada ---------------- */
+let SEASON_BOXES = {};           // hojas de anotación de la temporada archivada que se está viendo
+let viewingSeason = null;        // temporada pasada abierta en solo lectura (null = la actual)
+let liveState = null;            // la temporada en curso, guardada mientras se ve una pasada
+const SEASON_ARCHIVE = demoArchive();   // temporadas cerradas, la más reciente primero
+let seasonDraft = null;          // nueva temporada en preparación
+let seasonsCreated = 0;          // temporadas creadas en esta sesión: ya sin estadísticas de ejemplo
+
+const nextSeasonName = () => /^\d+$/.test(LEAGUE.season) ? String(+LEAGUE.season + 1) : "";
+function mondayOf(d){
+  const x = parseD(d);
+  x.setUTCDate(x.getUTCDate() - ((x.getUTCDay() + 6) % 7));
+  return x.toISOString().slice(0, 10);
+}
+
+/* Temporada 18 de ejemplo para la demo, con su rol completo: 10 semanas y exactamente 10 juegos por
+   equipo (todos contra todos, sin repetir rival). Los equipos de hoy más algunos que ya no juegan:
+   BNG Agroproductos se dio de baja después; Rayos del Valle, Gacelas y Las Reinas son de ejemplo.
+   La tabla final sale de esos juegos. */
+function demoArchive(){
+  const hash = s => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 17);
+  let seed = 180726;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const week1 = "2025-03-03";
+  const dayOf = (w, dow) => new Date(parseD(week1).getTime() + ((w - 1) * 7 + dow) * DAY_MS).toISOString().slice(0, 10);
+  const groups = {
+    novatos: [...TEAMS.avanzados, ...TEAMS.novatos, "BNG Agroproductos", "Rayos del Valle"],
+    femenil: [...TEAMS.femenil.slice(0, 8), "Gacelas", "Las Reinas"],
+  };
+  const slots = [];
+  for (let dow = 0; dow < 5; dow++) for (const h of ["19:00", "21:00"]) slots.push([dow, h]);
+  const games = [];
+  let n = 0;
+  for (const [cat, names] of Object.entries(groups)){
+    const strength = Object.fromEntries(names.map(t => [t, 3 + hash(t + "·fuerza") % 7]));
+    const list = names.slice();                       // número par de equipos
+    for (let r = 0; r < 10; r++){
+      const pairs = [];
+      for (let i = 0; i < list.length / 2; i++) pairs.push([list[i], list[list.length - 1 - i]]);
+      list.splice(1, 0, list.pop());                  // método del círculo: el primero queda fijo
+      pairs.forEach(([x, y], i) => {
+        const [dow, h] = slots[i % slots.length];
+        const [a, b] = (r + i) % 2 ? [x, y] : [y, x];
+        const w = r + 1;
+        const g = { w, d: dayOf(w, dow), h, c: cat, a, b, id: `t18-${++n}` };
+        if (rnd() < 0.03){
+          const ff = rnd() < 0.5 ? "a" : "b";
+          Object.assign(g, { st: "FF", ff, as: ff === "a" ? 0 : 7, bs: ff === "a" ? 7 : 0 });
+        } else {
+          let as = Math.round(strength[a] * (0.6 + rnd()) + rnd() * 4);
+          let bs = Math.round(strength[b] * (0.6 + rnd()) + rnd() * 4);
+          if (as === bs){ if (rnd() < 0.5) as++; else bs++; }
+          Object.assign(g, { st: "F", as, bs });
+        }
+        games.push(g);
+      });
+    }
+  }
+  const categories = {};
+  for (const [cat, names] of Object.entries(groups)){
+    const rows = Object.fromEntries(names.map(t => [t, { team: t, JG: 0, JE: 0, JP: 0, CF: 0, CC: 0 }]));
+    for (const g of games.filter(x => x.c === cat)){
+      const ws = g.as > g.bs ? "a" : g.bs > g.as ? "b" : null;
+      for (const s of ["a", "b"]){
+        const r = rows[g[s]], o = s === "a" ? "b" : "a";
+        if (!ws) r.JE++; else if (ws === s) r.JG++; else r.JP++;
+        r.CF += g[s + "s"]; r.CC += g[o + "s"];
+      }
+    }
+    categories[cat] = Object.values(rows)
+      .sort((x, y) => y.JG - x.JG || x.JP - y.JP || (y.CF - y.CC) - (x.CF - x.CC) || y.CF - x.CF)
+      .map((r, i) => ({ team: r.team, JG: r.JG, JE: r.JE, JP: r.JP, place: i + 1 }));
+  }
+  const teamInfo = {};
+  for (const [cat, names] of Object.entries(groups)) for (const t of names)
+    teamInfo[t] = { cat, manager: MANAGERS[t] || "", roster: (ROSTER_DATA[t] || []).slice(), logo: TEAM_LOGOS[t] || null };
+  return [{ season: "18", year: "2025", example: true, teamInfo, categories, games, boxes: {},
+    week1, weeks: 10, regular: 10, playoffs: { novatos: 8, femenil: 4 }, played: games.length,
+    po: simulatedPlayoffs(categories, { novatos: 8, femenil: 4 }, dayOf(10, 4), hash, rnd) }];
+}
+
+/* Cierra la temporada en curso: tabla final por categoría y la ficha de cada equipo. */
+function archiveCurrentSeason(){
+  const categories = {}, teamInfo = {};
+  const infoOf = (t, cat, extra) => ({ cat, manager: MANAGERS[t] || "", roster: (ROSTERS[t] || []).slice(), logo: TEAM_LOGOS[t] || null, ...extra });
+  for (const c of CATEGORIES){
+    const rows = rankTable(c.id);
+    if (rows.length) categories[c.id] = rows.map((r, i) => ({ team: r.team, JG: r.JG, JE: r.JE, JP: r.JP, place: i + 1 }));
+    for (const t of TEAMS[c.id] || []) teamInfo[t] = infoOf(t, c.id);
+  }
+  for (const w of withdrawn) if (!teamInfo[w.team]) teamInfo[w.team] = infoOf(w.team, w.cat, { baja: true });
+  const games = calGames().filter(g => g.st !== "P").map(g => { const { fresh, ...rest } = g; return JSON.parse(JSON.stringify(rest)); });
+  const boxes = {};
+  for (const g of calGames()) if (g.st === "F"){ const b = boxOf(g); if (b) boxes[g.id] = JSON.parse(JSON.stringify(b)); }
+  SEASON_ARCHIVE.unshift({ season: LEAGUE.season, year: LEAGUE.year, categories, teamInfo, games, boxes,
+    week1: WEEK1, weeks: Math.max(1, ...games.map(g => g.w)), regular: SEASON.games, playoffs: { ...SEASON.playoffs },
+    po: JSON.parse(JSON.stringify(PLAYOFFS)),
+    played: games.filter(isPlayed).length });
+}
+
+/* Lista de equipos para la temporada nueva: los de ahora (incluidos), los dados de baja y los
+   de temporadas pasadas (sin incluir), cada uno con su última categoría, roster y manager. */
+function newSeasonDraft(){
+  const teams = [], seen = new Set();
+  const add = t => {
+    if (seen.has(nameKey(t.name))) return;
+    seen.add(nameKey(t.name));
+    teams.push({ key: "t" + teams.length, keepRoster: t.roster.length > 0, paid: false, ...t });
+  };
+  for (const c of CATEGORIES){
+    const rows = rankTable(c.id);
+    rows.forEach((r, i) => add({ name: r.team, from: "actual", lastCat: c.id, cat: c.id, include: true,
+      note: `Temporada ${LEAGUE.season} · ${c.name} · ${i + 1}º de ${rows.length}`,
+      manager: MANAGERS[r.team] || "", roster: (ROSTERS[r.team] || []).slice(), logo: TEAM_LOGOS[r.team] || null }));
+  }
+  for (const w of withdrawn) add({ name: w.team, from: "baja", lastCat: w.cat, cat: w.cat, include: false,
+    note: `Se dio de baja en la temporada ${LEAGUE.season}`,
+    manager: MANAGERS[w.team] || "", roster: (ROSTERS[w.team] || []).slice(), logo: TEAM_LOGOS[w.team] || null });
+  for (const s of SEASON_ARCHIVE) for (const [name, info] of Object.entries(s.teamInfo)){
+    const row = (s.categories[info.cat] || []).find(r => r.team === name);
+    add({ name, from: "pasada", lastCat: info.cat, cat: CATEGORIES.some(c => c.id === info.cat) ? info.cat : mainCat().id, include: false,
+      note: `Última vez: temporada ${s.season} · ${catName(info.cat)}${row ? ` · ${row.place}º` : ""}${info.baja ? " · se dio de baja" : ""}`,
+      manager: info.manager, roster: info.roster.slice(), logo: info.logo });
+  }
+  return {
+    season: nextSeasonName(), year: String(Math.max(+LEAGUE.year || 0, +TODAY.slice(0, 4))),
+    games: SEASON.games, playoffs: { ...SEASON.playoffs }, teams,
+    newName: "", newCat: mainCat().id, show: "todos",
+  };
+}
+
+function seasonChecks(d){
+  const errors = [], warnings = [];
+  const name = normName(d.season);
+  if (!name) errors.push("Escribe el número de la nueva temporada.");
+  else if ([LEAGUE.season, ...SEASON_ARCHIVE.map(s => s.season)].some(s => nameKey(s) === nameKey(name))) errors.push(`Ya existe la temporada ${name}.`);
+  if (!/^\d{4}$/.test(normName(d.year))) errors.push("El año va con 4 dígitos.");
+  const inc = d.teams.filter(t => t.include);
+  if (!inc.length) errors.push("Incluye al menos un equipo.");
+  for (const c of CATEGORIES){
+    const n = inc.filter(t => t.cat === c.id).length;
+    if (n === 1) warnings.push(`${c.name} queda con un solo equipo: no se le pueden programar juegos.`);
+    if (n > 1 && d.playoffs[c.id] > n) warnings.push(`${c.name}: pasan ${d.playoffs[c.id]} a playoffs pero solo tiene ${n} equipos.`);
+  }
+  const out = d.teams.filter(t => t.from === "actual" && !t.include).length;
+  if (out) warnings.push(`${plural(out, "equipo de esta temporada no sigue", "equipos de esta temporada no siguen")}: quedan guardados para volver a inscribirse después.`);
+  const pending = calGames().filter(g => g.st === "P").length;
+  if (pending) warnings.push(`${plural(pending, "juego programado", "juegos programados")} sin resultado de la temporada ${LEAGUE.season} se quitan del calendario.`);
+  return { errors, warnings };
+}
+const seasonChecksHtml = chk => [
+  ...chk.errors.map(e => `<li class="err">${esc(e)}</li>`),
+  ...chk.warnings.map(w => `<li class="warn">${esc(w)}</li>`),
+].join("") || `<li class="ok">Todo listo para crear la temporada.</li>`;
+const seasonStatusHtml = chk => chk.errors.length
+  ? `<button type="button" class="cb-issue err" data-jump="sd-checks">${plural(chk.errors.length, "pendiente", "pendientes")} antes de crear</button>`
+  : chk.warnings.length
+    ? `<button type="button" class="cb-issue warn" data-jump="sd-checks">Se puede crear · ${plural(chk.warnings.length, "aviso", "avisos")}</button>`
+    : `<span class="cb-issue ok">✓ Lista para crear</span>`;
+
+function viewNuevaTemporada(){
+  if (!seasonDraft) seasonDraft = newSeasonDraft();
+  const d = seasonDraft;
+  const chk = seasonChecks(d);
+  const inc = d.teams.filter(t => t.include);
+  const paid = inc.filter(t => t.paid).length;
+  const opt = (v, label, sel) => `<option value="${esc(v)}"${sel ? " selected" : ""}>${esc(label)}</option>`;
+  const crestOf = t => t.logo && !TEAM_LOGOS[t.name] ? `<span class="crest crest-img"><img src="${t.logo}" alt=""></span>` : crest(t.name);
+  const TAG = { actual: "", pasada: `<span class="sdtag past">Temporada pasada</span>`, baja: `<span class="sdtag past">Dado de baja</span>`, nuevo: `<span class="sdtag new">Nuevo</span>` };
+  const shown = t => d.show === "todos" || (d.show === "incluidos" ? t.include : t.from !== "actual");
+  const order = { actual: 0, nuevo: 1, baja: 2, pasada: 3 };
+  const row = t => `<li class="sdrow${t.include ? "" : " off"}">
+      <label class="sdinc"><input type="checkbox" data-sdinc="${t.key}"${t.include ? " checked" : ""}><span class="sr-only">Incluir a ${esc(t.name)}</span></label>
+      <span class="sdteam">${crestOf(t)}<span class="sdname"><b>${esc(t.name)}${TAG[t.from]}</b><small>${esc(t.note)}${
+        t.include && t.from !== "nuevo" && t.cat !== t.lastCat ? ` · pasa a ${esc(catName(t.cat))}` : ""}</small></span></span>
+      <select data-sdcat="${t.key}" aria-label="Categoría de ${esc(t.name)}"${t.include ? "" : " disabled"}>${CATEGORIES.map(c => opt(c.id, c.name, c.id === t.cat)).join("")}</select>
+      <label class="sdopt${t.roster.length ? "" : " na"}"><input type="checkbox" data-sdroster="${t.key}"${t.keepRoster && t.roster.length ? " checked" : ""}${t.include && t.roster.length ? "" : " disabled"}> ${t.roster.length ? `Conservar roster (${t.roster.length})` : "Sin roster registrado"}</label>
+      <label class="sdopt"><input type="checkbox" data-sdpaid="${t.key}"${t.paid ? " checked" : ""}${t.include ? "" : " disabled"}> Inscripción cubierta</label>
+      ${t.from === "nuevo" ? `<button type="button" class="linkbtn danger" data-sddel="${t.key}">Quitar</button>` : "<span></span>"}
+    </li>`;
+  const pasados = d.teams.filter(t => t.from !== "actual").length;
+  const start = mondayOf(TODAY);
+  return `<div class="screen">
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <h1>Nueva temporada</h1>
+        <p class="sub">Cierra la temporada ${esc(LEAGUE.season)} y arranca la siguiente: elige qué equipos siguen, recupera equipos de temporadas pasadas y registra sus inscripciones. La temporada ${esc(LEAGUE.season)} queda archivada con su tabla final.</p>
+      </div>
+      <button type="button" class="btn ghost" data-sdcancel>Cancelar</button>
+    </div>
+
+    <section class="panel">
+      <div class="panel-h"><h2 class="display"><span class="stepn">1</span>Datos de la temporada</h2><span class="meta">La semana 1 empieza el lunes ${fmtDay(start)}</span></div>
+      <div class="form-row">
+        <div class="field"><label for="sd-season">Temporada</label>
+          <input type="text" class="sdtext" id="sd-season" maxlength="12" value="${esc(d.season)}" placeholder="Ej. 20"></div>
+        <div class="field"><label for="sd-year">Año</label>
+          <input type="text" class="sdtext" id="sd-year" maxlength="4" inputmode="numeric" value="${esc(d.year)}"></div>
+        <div class="field wide"><label>Juegos por equipo en temporada regular</label>
+          <span class="stepper">
+            <button type="button" data-sdgames="-1" aria-label="Un juego menos" ${d.games <= 2 ? "disabled" : ""}>−</button>
+            <output class="num" aria-live="polite">${d.games}</output>
+            <button type="button" data-sdgames="1" aria-label="Un juego más" ${d.games >= 30 ? "disabled" : ""}>+</button>
+          </span></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h">
+        <h2 class="display"><span class="stepn">2</span>Equipos e inscripciones</h2>
+        <div class="tabs">
+          <button type="button" class="tab" data-sdshow="todos" aria-pressed="${d.show === "todos"}">Todos<span class="n">${d.teams.length}</span></button>
+          <button type="button" class="tab" data-sdshow="incluidos" aria-pressed="${d.show === "incluidos"}">Incluidos<span class="n">${inc.length}</span></button>
+          <button type="button" class="tab" data-sdshow="pasados" aria-pressed="${d.show === "pasados"}">De temporadas pasadas<span class="n">${pasados}</span></button>
+        </div>
+      </div>
+      <p class="capnote sdhelp">Los equipos de la temporada ${esc(LEAGUE.season)} ya vienen incluidos. Marca los de temporadas pasadas que regresan, cambia de categoría a quien suba o baje y registra quién ya cubrió su inscripción.</p>
+      ${CATEGORIES.map(c => {
+        const list = d.teams.filter(t => t.cat === c.id && shown(t))
+          .sort((x, y) => (y.include - x.include) || (order[x.from] - order[y.from]));
+        const n = inc.filter(t => t.cat === c.id).length;
+        return `<section class="sdcat">
+          <header class="sdcat-h">
+            <h3 class="display">${esc(c.name)}</h3>
+            <span class="meta">${plural(n, "equipo incluido", "equipos incluidos")}</span>
+            <span class="sdbulk"><button type="button" class="linkbtn" data-sdall="${c.id}|1">Incluir todos</button><button type="button" class="linkbtn" data-sdall="${c.id}|0">Ninguno</button></span>
+          </header>
+          ${list.length ? `<ul class="sdlist">${list.map(row).join("")}</ul>` : `<p class="capnote sdempty">Sin equipos en esta vista.</p>`}
+        </section>`;
+      }).join("")}
+      <div class="sdadd">
+        <input type="text" class="sdtext" id="sd-newname" maxlength="40" value="${esc(d.newName)}" placeholder="Nombre de un equipo nuevo" aria-label="Nombre del equipo nuevo">
+        <select id="sd-newcat" aria-label="Categoría del equipo nuevo">${CATEGORIES.map(c => opt(c.id, c.name, c.id === d.newCat)).join("")}</select>
+        <button type="button" class="btn" data-sdadd><i class="fa-solid fa-plus" aria-hidden="true"></i> Agregar equipo nuevo</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h"><h2 class="display"><span class="stepn">3</span>Playoffs</h2><span class="meta">Equipos de cada categoría que pasan</span></div>
+      <div class="sdplayoffs">${CATEGORIES.map(c => {
+        const n = inc.filter(t => t.cat === c.id).length;
+        const p = d.playoffs[c.id] || 0, max = n >= 2 ? n : 16;
+        return `<div class="sdpo">
+          <b>${esc(c.name)}</b>
+          <span class="stepper">
+            <button type="button" data-sdplayoffs="${c.id}|-1" aria-label="Uno menos a playoffs en ${esc(c.name)}" ${p <= 2 ? "disabled" : ""}>−</button>
+            <output class="num" aria-live="polite">${p}</output>
+            <button type="button" data-sdplayoffs="${c.id}|1" aria-label="Uno más a playoffs en ${esc(c.name)}" ${p >= max ? "disabled" : ""}>+</button>
+          </span>
+          <small>${n ? `pasan los ${Math.min(p, n)} primeros de ${n}` : "sin equipos esta temporada"}</small>
+        </div>`;
+      }).join("")}</div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-h"><h2 class="display"><span class="stepn">4</span>Revisar y crear</h2></div>
+      <ul class="sdsummary">
+        <li><i class="fa-solid fa-box-archive" aria-hidden="true"></i><span>La temporada <b>${esc(LEAGUE.season)}</b> (${esc(LEAGUE.year)}) se archiva con su tabla final y ${plural(calGames().filter(isPlayed).length, "juego jugado", "juegos jugados")}.</span></li>
+        <li><i class="fa-solid fa-people-group" aria-hidden="true"></i><span>La temporada <b id="sd-sumname">${esc(normName(d.season) || "nueva")}</b> arranca con <b>${plural(inc.length, "equipo", "equipos")}</b>: ${CATEGORIES.map(c => {
+          const n = inc.filter(t => t.cat === c.id).length;
+          const back = inc.filter(t => t.cat === c.id && t.from !== "actual").length;
+          return n ? `${esc(c.name)} ${n}${back ? ` (${back} ${back === 1 ? "nuevo o de regreso" : "nuevos o de regreso"})` : ""}` : "";
+        }).filter(Boolean).join(" · ") || "ninguno"}.</span></li>
+        <li><i class="fa-solid fa-money-check-dollar" aria-hidden="true"></i><span>Inscripciones: <b>${paid}</b> cubiertas y <b>${inc.length - paid}</b> pendientes.</span></li>
+        <li><i class="fa-solid fa-calendar-days" aria-hidden="true"></i><span>El calendario arranca vacío en la semana 1 (${weekRangeFrom(start)}), con ${d.games} juegos por equipo. Después: programa la semana 1 en <b>Programar juegos</b>.</span></li>
+      </ul>
+      <ul class="checks" id="sd-checks" aria-live="polite">${seasonChecksHtml(chk)}</ul>
+    </section>
+
+    <div class="capbar sdbar" role="region" aria-label="Crear la temporada">
+      <span class="cb-game"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i><b id="sdbar-name">Temporada ${esc(normName(d.season) || "nueva")}</b><span>${plural(inc.length, "equipo", "equipos")} · ${paid} inscripciones cubiertas</span></span>
+      <span class="cb-status" id="sdbar-status">${seasonStatusHtml(chk)}</span>
+      <span class="cb-acts"><button type="button" class="btn primary" data-sdcreate${chk.errors.length ? " disabled" : ""}>Crear temporada</button></span>
+    </div>
+  </div>`;
+}
+function weekRangeFrom(monday){
+  const a = parseD(monday), b = new Date(a.getTime() + 6 * DAY_MS);
+  return `${a.getUTCDate()} ${MESES[a.getUTCMonth()]}–${b.getUTCDate()} ${MESES[b.getUTCMonth()]}`;
+}
+
+/* Mientras se escribe el número o el año: revisión y barra, sin redibujar los campos. */
+function refreshSeason(){
+  const d = seasonDraft;
+  if (!d) return;
+  const chk = seasonChecks(d);
+  const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+  set("sd-checks", seasonChecksHtml(chk));
+  set("sdbar-status", seasonStatusHtml(chk));
+  set("sdbar-name", `Temporada ${esc(normName(d.season) || "nueva")}`);
+  set("sd-sumname", esc(normName(d.season) || "nueva"));
+  const btn = document.querySelector("[data-sdcreate]");
+  if (btn) btn.disabled = chk.errors.length > 0;
+}
+
+function seasonAction(el){
+  const d = seasonDraft, ds = el.dataset;
+  if (ds.sdall){
+    const [cat, on] = ds.sdall.split("|");
+    d.teams.filter(t => t.cat === cat).forEach(t => { t.include = on === "1"; });
+    return render();
+  }
+  if (ds.sdshow){ d.show = ds.sdshow; return render(); }
+  if (ds.sdgames){ d.games = Math.min(30, Math.max(2, d.games + +ds.sdgames)); return render(); }
+  if (ds.sdplayoffs){
+    const [cat, step] = ds.sdplayoffs.split("|");
+    const n = d.teams.filter(t => t.include && t.cat === cat).length;
+    d.playoffs[cat] = Math.min(n >= 2 ? n : 16, Math.max(2, (d.playoffs[cat] || 0) + +step));
+    return render();
+  }
+  if (ds.sdadd !== undefined){
+    const name = normName(d.newName);
+    if (!name) return toast("Escribe el nombre del equipo nuevo");
+    const same = d.teams.find(t => nameKey(t.name) === nameKey(name));
+    if (same){
+      same.include = true;
+      d.newName = "";
+      render();
+      return toast(same.from === "actual" ? `${same.name} ya está en la temporada` : `${same.name} ya jugó antes: quedó incluido con su historial`);
+    }
+    d.teams.push({ key: "n" + d.teams.length + "-" + Date.now(), name, from: "nuevo", lastCat: d.newCat, cat: d.newCat, include: true,
+      note: "Equipo nuevo · su manager y roster se capturan en Administrar equipos", manager: "", roster: [], logo: null, keepRoster: false, paid: false });
+    d.newName = "";
+    render();
+    const box = document.getElementById("sd-newname");
+    if (box) box.focus();
+    return toast(`${name} agregado a ${catName(d.newCat)}`);
+  }
+  if (ds.sddel){ d.teams = d.teams.filter(t => t.key !== ds.sddel); return render(); }
+  if (ds.sdcancel !== undefined){ seasonDraft = null; return go("temporada"); }
+  if (ds.sdcreate !== undefined){
+    if (seasonChecks(d).errors.length) return;
+    const inc = d.teams.filter(t => t.include).length;
+    return askConfirm({
+      title: `¿Crear la temporada ${normName(d.season)}?`,
+      body: `La temporada ${LEAGUE.season} se cierra y queda archivada con su tabla final. La nueva arranca con ${plural(inc, "equipo", "equipos")}, el calendario vacío y las estadísticas en cero.`,
+      ok: "Crear temporada",
+      onConfirm: createSeason,
+    });
+  }
+}
+
+function createSeason(){
+  const d = seasonDraft;
+  if (!d || seasonChecks(d).errors.length) return;
+  const prev = LEAGUE.season;
+  const pending = calGames().filter(g => g.st === "P").length;
+  archiveCurrentSeason();
+
+  const inc = d.teams.filter(t => t.include);
+  for (const c of CATEGORIES) TEAMS[c.id] = inc.filter(t => t.cat === c.id).map(t => t.name);
+  for (const t of inc){
+    if (t.keepRoster && t.roster.length) ROSTERS[t.name] = t.roster.slice(); else delete ROSTERS[t.name];
+    if (!MANAGERS[t.name]) MANAGERS[t.name] = t.manager || "Por asignar";
+    if (t.logo && !TEAM_LOGOS[t.name]) TEAM_LOGOS[t.name] = t.logo;
+  }
+  CATEGORIES.forEach(c => { c.teams = TEAMS[c.id].length; c.active = c.teams > 0; });
+
+  replaceArr(CAL, []);
+  scheduled = []; captured = null; corrections = []; published = false; createdWeeks = 0; changedTeams = [];
+  WEEK1 = mondayOf(TODAY); WEEKS = 1; TODAY_WEEK = weekOf(TODAY);
+  const dues = Object.fromEntries(inc.map(t => [t.name, t.paid ? TODAY_WEEK : null]));
+  replaceObj(TEAM_DUES_DATA, dues);
+  replaceObj(TEAM_DUES, dues);
+  replaceArr(ERA_LEADERS, []);
+  replaceObj(RIVAL_LEADERS, { avg: [], CP: [], HR: [] });
+  SEASON.games = d.games;
+  for (const c of CATEGORIES){
+    const n = TEAMS[c.id].length;
+    SEASON.playoffs[c.id] = n >= 2 ? Math.min(d.playoffs[c.id] || 2, n) : (d.playoffs[c.id] || SEASON_DEFAULT.playoffs);
+  }
+  LEAGUE.season = normName(d.season);
+  LEAGUE.year = normName(d.year);
+  seasonsCreated++;
+  withdrawn = [];
+  Object.assign(PLAYOFFS, emptyPlayoffs());
+
+  setCaptureGame(null);
+  capState.week = TODAY_WEEK;
+  fixForm = null; capMode = "nuevo"; calWeek = null; openGame = null;
+  schedForm = defaultSchedForm();
+  if (openTeam && !inc.some(t => t.name === openTeam)) openTeam = null;
+  teamForm = null;
+  seasonDraft = null;
+  go("admin");
+  toast(`Temporada ${LEAGUE.season} creada con ${plural(inc.length, "equipo", "equipos")} · la ${prev} quedó archivada${pending ? ` y se quitaron ${plural(pending, "juego sin jugar", "juegos sin jugar")}` : ""}`);
+}
+
+/* ---------------- playoffs ---------------- */
+/* Series al mejor de 3 (gana quien gane 2). En cada ronda el mejor sembrado que sigue vivo enfrenta
+   al peor, el segundo al penúltimo, y así; con equipos impares, el mejor sembrado descansa.
+   Mientras la temporada regular siga abierta la llave es una proyección del standing; al cerrarla
+   se congelan los sembrados y el administrador captura los juegos de cada serie. */
+function emptyPlayoffs(){ return { closed: false, closedAt: null, cats: {}, results: {} }; }
+const PLAYOFFS = emptyPlayoffs();
+let poCat = null;                // categoría abierta en la pestaña de playoffs
+let poRegistry = [];             // series de la llave dibujada, para los botones de captura
+
+function roundName(teams){
+  return teams <= 2 ? "Final" : teams <= 4 ? "Semifinales" : teams <= 8 ? "Cuartos de final" : teams <= 16 ? "Octavos de final" : "Primera ronda";
+}
+
+function buildBracket(catId, seeds, results){
+  const rounds = [];
+  let alive = seeds.slice().sort((a, b) => a.seed - b.seed);
+  let r = 0;
+  while (alive.length > 1){
+    const list = alive.slice();
+    const bye = list.length % 2 ? list.shift() : null;
+    const series = [];
+    for (let i = 0; i < list.length / 2; i++){
+      const hi = list[i], lo = list[list.length - 1 - i];
+      const key = `${catId}|${r}|${hi.team}|${lo.team}`;
+      const games = (results && results[key]) || [];
+      const wins = { hi: games.filter(g => g.h > g.l).length, lo: games.filter(g => g.l > g.h).length };
+      series.push({ key, hi, lo, games, wins, winner: wins.hi >= 2 ? hi : wins.lo >= 2 ? lo : null });
+    }
+    rounds.push({ name: roundName(alive.length), series, bye });
+    if (series.some(s => !s.winner)){
+      let n = series.length + (bye ? 1 : 0);
+      while (n > 1){
+        const odd = n % 2 === 1, count = Math.floor(n / 2);
+        rounds.push({ name: roundName(n), series: Array.from({ length: count }, () => ({ placeholder: true })), bye: odd ? { placeholder: true } : null });
+        n = count + (odd ? 1 : 0);
+      }
+      return { rounds, champion: null };
+    }
+    alive = [...(bye ? [bye] : []), ...series.map(s => s.winner)].sort((a, b) => a.seed - b.seed);
+    r++;
+  }
+  return { rounds, champion: rounds.length ? alive[0] : null };
+}
+
+/* Playoffs ya jugados para la temporada de ejemplo. */
+function simulatedPlayoffs(categories, counts, closedAt, hash, rnd){
+  const po = emptyPlayoffs();
+  po.closed = true;
+  po.closedAt = closedAt;
+  const score = t => Math.round((3 + hash(t + "·fuerza") % 7) * (0.6 + rnd()) + rnd() * 4);
+  for (const [cat, rows] of Object.entries(categories)){
+    const P = Math.min(counts[cat] || 4, rows.length);
+    if (P < 2) continue;
+    po.cats[cat] = { seeds: rows.slice(0, P).map((r, i) => ({ team: r.team, seed: i + 1, JG: r.JG, JP: r.JP, JE: r.JE })) };
+    for (let guard = 0; guard < 60; guard++){
+      const open = buildBracket(cat, po.cats[cat].seeds, po.results).rounds.flatMap(rd => rd.series).find(s => !s.placeholder && !s.winner);
+      if (!open) break;
+      let h = score(open.hi.team), l = score(open.lo.team);
+      if (h === l){ if (rnd() < 0.55) h++; else l++; }
+      (po.results[open.key] = po.results[open.key] || []).push({ h, l });
+    }
+  }
+  return po;
+}
+
+const seedsOf = catId => rankTable(catId).slice(0, playoffsFor(catId)).map((r, i) => ({ team: r.team, seed: i + 1, JG: r.JG, JP: r.JP, JE: r.JE }));
+function bracketFor(catId){
+  if (PLAYOFFS.closed){
+    const fixed = PLAYOFFS.cats[catId];
+    return fixed ? { ...buildBracket(catId, fixed.seeds, PLAYOFFS.results), seeds: fixed.seeds, closed: true } : null;
+  }
+  const seeds = seedsOf(catId);
+  return seeds.length >= 2 ? { ...buildBracket(catId, seeds, {}), seeds, closed: false } : null;
+}
+
+function regularGamesLeft(){
+  return CATEGORIES.reduce((n, c) => {
+    const t = (TEAMS[c.id] || []).length;
+    return t < 2 ? n : n + Math.max(0, t * SEASON.games / 2 - calGames().filter(g => g.c === c.id && isPlayed(g)).length);
+  }, 0);
+}
+
+function closeRegularSeason(){
+  const cats = {};
+  for (const c of CATEGORIES){
+    const seeds = seedsOf(c.id);
+    if (seeds.length >= 2) cats[c.id] = { seeds };
+  }
+  Object.assign(PLAYOFFS, { closed: true, closedAt: TODAY, cats, results: {} });
+}
+
+/* Quita resultados de series que ya no existen (por ejemplo, al quitar un juego de una ronda anterior). */
+function prunePlayoffs(catId){
+  const br = bracketFor(catId);
+  if (!br) return;
+  const valid = new Set(br.rounds.flatMap(rd => rd.series).filter(s => !s.placeholder).map(s => s.key));
+  for (const k of Object.keys(PLAYOFFS.results)) if (k.startsWith(catId + "|") && !valid.has(k)) delete PLAYOFFS.results[k];
+}
+
+function addPlayoffGame(sid){
+  const key = poRegistry[sid];
+  if (!key) return;
+  const hi = document.getElementById(`po-hi-${sid}`), lo = document.getElementById(`po-lo-${sid}`);
+  const h = Number(hi && hi.value), l = Number(lo && lo.value);
+  if (!hi || !lo || hi.value === "" || lo.value === "" || ![h, l].every(v => Number.isInteger(v) && v >= 0 && v <= 99))
+    return toast("Escribe las carreras de los dos equipos");
+  if (h === l) return toast("No hay empates: captura el marcador final del juego");
+  const catId = key.split("|")[0];
+  const current = bracketFor(catId).rounds.flatMap(rd => rd.series).find(x => x.key === key);
+  if (!current || current.winner) return;
+  (PLAYOFFS.results[key] = PLAYOFFS.results[key] || []).push({ h, l });
+  render();
+  const after = bracketFor(catId), s = after.rounds.flatMap(rd => rd.series).find(x => x.key === key);
+  toast(s.winner
+    ? `${s.winner.team} gana la serie ${Math.max(s.wins.hi, s.wins.lo)}–${Math.min(s.wins.hi, s.wins.lo)}${after.champion ? ` y es campeón de ${catName(catId)}` : ""}`
+    : `Juego ${s.games.length} guardado · serie ${s.hi.team} ${s.wins.hi}–${s.wins.lo} ${s.lo.team}`);
+}
+
+/* En Temporada: cerrar la temporada regular (o reabrirla si todavía no hay juegos de playoffs). */
+function regularSeasonControl(){
+  if (!PLAYOFFS.closed){
+    const left = regularGamesLeft();
+    return `<div class="rulebody po-rule">
+      <span><b>Temporada regular abierta.</b> ${left ? `Faltan ${plural(left, "juego", "juegos")} para completar los ${SEASON.games} de cada equipo.` : "Ya se jugaron todos los juegos."} La llave de playoffs se proyecta con el standing de hoy.</span>
+      <button type="button" class="btn" data-poclose><i class="fa-solid fa-lock" aria-hidden="true"></i> Cerrar temporada regular</button>
+    </div>`;
+  }
+  return `<div class="rulebody po-rule">
+      <span><b>Temporada regular cerrada</b> el ${fmtDay(PLAYOFFS.closedAt)}: los playoffs están publicados.</span>
+      <span class="po-rule-acts">
+        <button type="button" class="btn" data-go="playoffs"><i class="fa-solid fa-sitemap" aria-hidden="true"></i> Ver playoffs</button>
+        ${Object.keys(PLAYOFFS.results).length ? "" : `<button type="button" class="btn ghost" data-poreopen>Reabrir</button>`}
+      </span>
+    </div>`;
+}
+
+function viewPlayoffs(){
+  const canEdit = !isLocked() && !isVisitor();
+  const cats = CATEGORIES.filter(c => bracketFor(c.id));
+  const head = `<div class="page-head">
+      <div>
+        <p class="eyebrow">${esc(leagueFull())} · Temporada ${esc(LEAGUE.season)}</p>
+        <h1>Playoffs</h1>
+        <p class="sub">Series al mejor de 3: avanza quien gane 2 juegos. El mejor clasificado enfrenta al último que clasifica, el segundo al penúltimo, y así en cada ronda.</p>
+      </div>
+      ${cats.length > 1 ? `<div class="tabs">${cats.map(c => `<button type="button" class="tab" data-pocat="${c.id}" aria-pressed="${false}">${esc(c.name)}</button>`).join("")}</div>` : ""}
+    </div>`;
+  if (!cats.length) return `<div class="screen">${head}
+    <div class="panel"><div class="empty">
+      <strong>Todavía no hay playoffs</strong>
+      <span>Cuando las categorías tengan equipos y juegos, aquí aparece la llave proyectada con el standing.</span>
+    </div></div></div>`;
+  const cat = cats.find(c => c.id === poCat) || cats.find(c => c.id === mainCat().id) || cats[0];
+  const br = bracketFor(cat.id);
+  const table = rankTable(cat.id);
+  const P = br.seeds.length;
+  poRegistry = [];
+
+  const short = t => t.split(" ")[0];
+  const teamRow = (s, side) => {
+    const t = s[side];
+    const win = s.winner && s.winner.team === t.team, out = s.winner && !win;
+    return `<div class="po-team${win ? " win" : ""}${out ? " out" : ""}">
+      <span class="po-seed" title="Sembrado ${t.seed}">${t.seed}</span>
+      <button type="button" class="po-name" data-team="${esc(t.team)}">${crest(t.team)}<span>${esc(t.team)}<small>${t.JG}-${t.JP}${t.JE ? `-${t.JE}` : ""} en temporada regular</small></span></button>
+      <b class="po-wins num">${br.closed ? s.wins[side] : ""}</b>
+    </div>`;
+  };
+  const seriesCard = s => {
+    if (s.placeholder) return `<div class="po-series tbd">
+        <div class="po-sh"><span>Al mejor de 3</span><span class="po-status">Por definir</span></div>
+        <div class="po-team tbd"><span class="po-seed">–</span><span class="po-name"><span>Por definir</span></span></div>
+        <div class="po-team tbd"><span class="po-seed">–</span><span class="po-name"><span>Por definir</span></span></div>
+      </div>`;
+    const sid = poRegistry.push(s.key) - 1;
+    const hiW = Math.max(s.wins.hi, s.wins.lo), loW = Math.min(s.wins.hi, s.wins.lo);
+    const status = !br.closed ? "Si terminara hoy"
+      : s.winner ? `Gana ${s.winner.team} ${hiW}–${loW}`
+      : s.games.length ? `Serie ${s.wins.hi}–${s.wins.lo}` : "Por jugar";
+    const tied = s.wins.hi === 1 && s.wins.lo === 1;
+    const chips = !br.closed ? "" : [0, 1, 2].map(i => {
+      const g = s.games[i];
+      if (g) return `<span class="po-g done">J${i + 1} <b>${g.h}–${g.l}</b></span>`;
+      return !s.winner && (i < 2 || tied) ? `<span class="po-g">J${i + 1} —</span>` : "";
+    }).join("");
+    const undo = br.closed && canEdit && s.games.length ? `<button type="button" class="linkbtn danger" data-poundo="${sid}">Quitar último juego</button>` : "";
+    const cap = br.closed && canEdit && !s.winner ? `<div class="po-cap">
+        <span>Juego ${s.games.length + 1}</span>
+        <input type="number" id="po-hi-${sid}" min="0" max="99" inputmode="numeric" placeholder="${esc(short(s.hi.team))}" aria-label="Carreras de ${esc(s.hi.team)} en el juego ${s.games.length + 1}">
+        <i>–</i>
+        <input type="number" id="po-lo-${sid}" min="0" max="99" inputmode="numeric" placeholder="${esc(short(s.lo.team))}" aria-label="Carreras de ${esc(s.lo.team)} en el juego ${s.games.length + 1}">
+        <button type="button" class="btn primary" data-poadd="${sid}">Guardar</button>
+      </div>` : "";
+    return `<div class="po-series${s.winner ? " done" : ""}">
+      <div class="po-sh"><span>Al mejor de 3</span><span class="po-status">${esc(status)}</span></div>
+      ${teamRow(s, "hi")}${teamRow(s, "lo")}
+      ${chips || undo ? `<div class="po-games">${chips}${undo}</div>` : ""}
+      ${cap}
+    </div>`;
+  };
+  const byeCard = b => b.placeholder
+    ? `<div class="po-series bye tbd"><div class="po-sh"><span>Descanso</span><span class="po-status">Por definir</span></div><p class="po-byenote">El mejor sembrado que siga vivo pasa directo.</p></div>`
+    : `<div class="po-series bye"><div class="po-sh"><span>Descanso</span><span class="po-status">Pasa directo</span></div>
+        <div class="po-team win"><span class="po-seed">${b.seed}</span><button type="button" class="po-name" data-team="${esc(b.team)}">${crest(b.team)}<span>${esc(b.team)}<small>Mejor sembrado de la ronda</small></span></button><b class="po-wins"></b></div>
+      </div>`;
+
+  const cut = table[P - 1];
+  const contenders = br.closed ? [] : table.slice(P, P + 3);
+  const note = br.closed
+    ? `<div class="note po-note"><span class="tag">Publicados</span>
+        <span>La temporada regular cerró el ${fmtDay(PLAYOFFS.closedAt)} y estos son los sembrados finales. ${canEdit ? "Captura cada juego en su serie: la siguiente ronda se arma sola." : "Los resultados aparecen en cuanto se capturan."}</span></div>`
+    : `<div class="note po-note"><span class="tag">En vivo</span>
+        <span>La temporada regular sigue: la llave se acomoda sola con cada resultado. Hoy clasifican los <b>${P}</b> primeros de ${table.length} en ${esc(cat.name)}.</span>
+        ${canEdit ? `<button type="button" class="btn primary" data-poclose><i class="fa-solid fa-lock" aria-hidden="true"></i> Cerrar temporada regular y publicar</button>` : ""}</div>`;
+
+  return `<div class="screen">
+    ${head.replace(`data-pocat="${cat.id}" aria-pressed="false"`, `data-pocat="${cat.id}" aria-pressed="true"`)}
+    ${note}
+    ${br.champion ? `<section class="po-champ">
+      <div class="hero2-bg" aria-hidden="true"></div>
+      <i class="fa-solid fa-trophy" aria-hidden="true"></i>
+      <div>
+        <p class="hero2-kicker">Campeón · ${esc(cat.name)} · Temporada ${esc(LEAGUE.season)}</p>
+        <button type="button" class="po-champ-team" data-team="${esc(br.champion.team)}">${crest(br.champion.team)}<b>${esc(br.champion.team)}</b></button>
+      </div>
+    </section>` : ""}
+    <div class="po-grid">
+      <section class="panel">
+        <div class="panel-h"><h2 class="display">Llave · ${esc(cat.name)}</h2><span class="meta">${br.closed ? "Publicada" : "Proyección con el standing de hoy"} · ${plural(P, "equipo", "equipos")}</span></div>
+        <div class="bracket">${br.rounds.map(rd => `<div class="po-round">
+          <h3 class="po-rname display">${rd.name}</h3>
+          <div class="po-list">${rd.bye ? byeCard(rd.bye) : ""}${rd.series.map(seriesCard).join("")}</div>
+        </div>`).join("")}</div>
+      </section>
+      <section class="panel">
+        <div class="panel-h"><h2 class="display">Clasificados</h2><span class="meta">${br.closed ? "Tabla final" : "Standing de hoy"}</span></div>
+        <ol class="po-seeds">${br.seeds.map(t => `<li>
+          <span class="po-seed">${t.seed}</span>${crest(t.team)}
+          <button type="button" class="po-sname" data-team="${esc(t.team)}">${esc(t.team)}</button>
+          <span class="num">${t.JG}-${t.JP}${t.JE ? `-${t.JE}` : ""}</span>
+        </li>`).join("")}</ol>
+        ${contenders.length ? `<p class="po-cut">Fuera por ahora</p><ol class="po-seeds outside" start="${P + 1}">${contenders.map((r, i) => `<li>
+          <span class="po-seed">${P + i + 1}</span>${crest(r.team)}
+          <button type="button" class="po-sname" data-team="${esc(r.team)}">${esc(r.team)}</button>
+          <span class="gb">${cut && cut.JG - r.JG > 0 ? `a ${plural(cut.JG - r.JG, "ganado", "ganados")}` : "empatado en ganados"}</span>
+        </li>`).join("")}</ol>` : ""}
+      </section>
+    </div>
+  </div>`;
+}
+
+/* ---------------- ver temporadas pasadas ---------------- */
+/* Todo el sitio se calcula de CAL, TEAMS, rosters y la temporada en LEAGUE: para ver una temporada
+   archivada se cargan sus datos ahí, en solo lectura, y la temporada en curso se guarda intacta. */
+function captureSeasonState(){
+  return {
+    games: CAL.slice(), scheduled, captured, corrections, published, createdWeeks, withdrawn,
+    teams: Object.fromEntries(CATEGORIES.map(c => [c.id, (TEAMS[c.id] || []).slice()])),
+    rosters: { ...ROSTER_DATA }, managers: { ...MANAGERS }, logos: { ...TEAM_LOGOS },
+    season: LEAGUE.season, year: LEAGUE.year, week1: WEEK1, weeks: WEEKS, todayWeek: TODAY_WEEK,
+    regular: SEASON.games, playoffs: { ...SEASON.playoffs },
+    era: ERA_LEADERS.slice(), rivals: { ...RIVAL_LEADERS }, boxes: SEASON_BOXES,
+    po: JSON.parse(JSON.stringify(PLAYOFFS)),
+  };
+}
+function stateFromArchive(s){
+  const teams = Object.fromEntries(CATEGORIES.map(c => [c.id, []]));
+  for (const [name, info] of Object.entries(s.teamInfo)) if (!info.baja && teams[info.cat]) teams[info.cat].push(name);
+  const pick = k => Object.fromEntries(Object.entries(s.teamInfo)
+    .filter(([, i]) => k === "roster" ? i.roster && i.roster.length : i[k])
+    .map(([name, i]) => [name, k === "roster" ? i.roster.slice() : i[k]]));
+  const weeks = s.weeks || Math.max(1, ...(s.games || []).map(g => g.w));
+  return {
+    games: (s.games || []).map(g => ({ ...g })), scheduled: [], captured: null, corrections: [], published: false, createdWeeks: 0, withdrawn: [],
+    teams, rosters: pick("roster"), managers: pick("manager"), logos: pick("logo"),
+    season: s.season, year: s.year, week1: s.week1 || WEEK1, weeks, todayWeek: weeks,
+    regular: s.regular || SEASON.games, playoffs: { ...SEASON.playoffs, ...(s.playoffs || {}) },
+    era: [], rivals: { avg: [], CP: [], HR: [] }, boxes: s.boxes || {},
+    po: s.po ? JSON.parse(JSON.stringify(s.po)) : emptyPlayoffs(),
+  };
+}
+function loadSeasonState(st){
+  replaceArr(CAL, st.games);
+  scheduled = st.scheduled; captured = st.captured; corrections = st.corrections;
+  published = st.published; createdWeeks = st.createdWeeks; withdrawn = st.withdrawn;
+  for (const c of CATEGORIES) TEAMS[c.id] = st.teams[c.id] || [];
+  replaceObj(ROSTER_DATA, st.rosters);
+  replaceObj(MANAGERS, st.managers);
+  replaceObj(TEAM_LOGOS, st.logos);
+  LEAGUE.season = st.season; LEAGUE.year = st.year;
+  WEEK1 = st.week1; WEEKS = st.weeks; TODAY_WEEK = st.todayWeek;
+  SEASON.games = st.regular;
+  Object.assign(SEASON.playoffs, st.playoffs);
+  replaceArr(ERA_LEADERS, st.era);
+  replaceObj(RIVAL_LEADERS, st.rivals);
+  SEASON_BOXES = st.boxes;
+  Object.assign(PLAYOFFS, emptyPlayoffs(), st.po || {});
+  CATEGORIES.forEach(c => { c.teams = TEAMS[c.id].length; c.active = c.teams > 0; });
+}
+
+function viewSeason(id){
+  const live = liveState ? liveState.season : LEAGUE.season;
+  if (!id || id === "actual" || id === live){
+    if (!viewingSeason) return;
+    loadSeasonState(liveState);
+    liveState = null;
+    viewingSeason = null;
+  } else {
+    const s = SEASON_ARCHIVE.find(x => x.season === id);
+    if (!s || viewingSeason === s.season) return;
+    if (!liveState) liveState = captureSeasonState();
+    loadSeasonState(stateFromArchive(s));
+    viewingSeason = s.season;
+  }
+  calWeek = null; openGame = null; openTeam = null; viewGameId = null; changedTeams = [];
+  if (ADMIN_SCREENS.includes(screen) || screen === "juego") screen = "inicio";
+  else if (screen === "equipo") screen = "equipos";
+  render();
+  window.scrollTo({ top: 0 });
+  toast(viewingSeason ? `Viendo la temporada ${LEAGUE.season} (${LEAGUE.year}) en solo lectura` : `De vuelta en la temporada ${LEAGUE.season}`);
+}
+
+/* Selector bajo el nombre de la liga y franja de "solo lectura". */
+function renderSeasonPicker(){
+  const sel = document.getElementById("season-select"), box = document.getElementById("season-box");
+  const live = liveState ? liveState.season : LEAGUE.season;
+  if (box) box.hidden = !SEASON_ARCHIVE.length;
+  const key = [live, ...SEASON_ARCHIVE.map(s => s.season + s.year)].join("|");
+  if (sel && sel.dataset.key !== key){
+    sel.dataset.key = key;
+    sel.innerHTML = `<option value="actual">Temporada ${esc(live)}</option>`
+      + SEASON_ARCHIVE.map(s => `<option value="${esc(s.season)}">Temporada ${esc(s.season)} (${esc(s.year)})</option>`).join("");
+  }
+  if (sel) sel.value = viewingSeason || "actual";
+  const bar = document.getElementById("pastbar");
+  if (bar) bar.hidden = !viewingSeason;
+  if (viewingSeason){
+    const txt = document.getElementById("pasttext"), back = document.getElementById("pastback-txt");
+    if (txt) txt.innerHTML = `Estás viendo la <b>temporada ${esc(LEAGUE.season)}</b> (${esc(LEAGUE.year)}) · solo lectura`;
+    if (back) back.textContent = `Volver a la temporada ${live}`;
+  }
+}
+
+/* En Temporada: la temporada en curso con el botón para crear la siguiente. */
+function seasonNowPanel(){
+  const next = nextSeasonName();
+  return `<div class="panel seasonnow">
+    <div class="panel-h"><h2 class="display">Temporada ${esc(LEAGUE.season)} · en curso</h2><span class="meta">${esc(LEAGUE.year)} · semana ${TODAY_WEEK}</span></div>
+    <div class="rulebody">
+      <span>¿Terminó la temporada? Crea la siguiente: eliges qué equipos siguen, recuperas equipos de temporadas pasadas y registras sus inscripciones.</span>
+      <button type="button" class="btn primary" data-go="nuevatemporada"><i class="fa-solid fa-flag-checkered" aria-hidden="true"></i> Crear temporada${next ? ` ${esc(next)}` : " nueva"}</button>
+    </div>
+    ${regularSeasonControl()}
+  </div>`;
+}
+
+function seasonArchivePanel(){
+  if (!SEASON_ARCHIVE.length) return "";
+  return `<p class="section-label">Temporadas pasadas</p>
+    <div class="panel">
+      <ul class="archlist">${SEASON_ARCHIVE.map(s => `<li>
+        <span class="an"><b>Temporada ${esc(s.season)}</b><small>${esc(s.year)}${s.example ? " · datos de ejemplo" : ""}</small></span>
+        <span class="ac">${plural(Object.keys(s.teamInfo).length, "equipo", "equipos")}${s.played != null ? ` · ${plural(s.played, "juego", "juegos")}` : ""}</span>
+        <span class="aw">${Object.entries(s.categories).map(([c, rows]) => {
+          const champ = s.po && s.po.closed && s.po.cats[c] ? buildBracket(c, s.po.cats[c].seeds, s.po.results).champion : null;
+          return champ ? `<span><i class="fa-solid fa-trophy" aria-hidden="true"></i>${esc(catName(c))}: <b>${esc(champ.team)}</b> <small>campeón</small></span>`
+            : rows[0] ? `<span><i class="fa-solid fa-medal" aria-hidden="true"></i>${esc(catName(c))}: <b>${esc(rows[0].team)}</b> <small>1º lugar</small></span>` : "";
+        }).join("")}</span>
+        <button type="button" class="btn" data-viewseason="${esc(s.season)}"><i class="fa-solid fa-eye" aria-hidden="true"></i> Ver temporada</button>
+      </li>`).join("")}</ul>
+      <p class="capnote archnote">Campeón de playoffs de cada categoría, o primer lugar de la temporada regular si no hubo playoffs. Sus equipos se pueden volver a inscribir al crear una temporada.</p>
+    </div>`;
 }
 
 /* ---------------- orden al bat ---------------- */
@@ -2065,13 +3044,9 @@ const SAMPLE_STATS = {
       [3,1,0,0,0,1,1,0,1,0],[3,1,0,0,0,1,1,0,0,1],[3,0,0,0,0,0,0,1,1,0],[3,1,0,0,0,1,1,0,0,0]],
 };
 
+/* Orden al bat en blanco: 9 turnos (el mínimo) con la posición sugerida y sin jugadores ni números. */
 function defaultLineup(team, side){
-  const names = rosterOf(team);
-  if (!names.length) return [];
-  if (appMode === "demo" && team === STATS_TEAM) return CAIMANES_SAMPLE.map(([player, pos, stats, sub]) => ({
-    entries: [newEntry(player, pos, "titular", null, stats)].concat(sub ? [newEntry(sub[0], pos, "cambio", sub[1], sub[2])] : []),
-  }));
-  return GENERIC_POS.map((pos, i) => ({ entries: [newEntry(names[i], pos, "titular", null, SAMPLE_STATS[side][i])] }));
+  return rosterOf(team).length ? GENERIC_POS.map(pos => ({ entries: [newEntry("", pos)] })) : [];
 }
 
 /* Jugadores que ya aparecen en el orden al bat (titulares, cambios y reingresos). */
@@ -2219,7 +3194,7 @@ function lineupTable(side){
       e.kind === "cambio" && !canReenter(slot) ? `<span class="muted" title="Entró de cambio y ${esc(slot.entries[0].player)} ya reingresó una vez">Sin más cambios</span>` : "",
       canReenter(slot) ? `<button class="linkbtn" data-luadd="${side}|${i}|reingreso">Reingresa ${esc(slot.entries[0].player.split(" ")[0])}</button>` : "",
       k ? `<button class="linkbtn danger" data-ludel="${side}|${i}">Quitar cambio</button>`
-        : `<button class="linkbtn danger" data-luslot="${side}|${i}" aria-label="Quitar el turno ${i + 1}">Quitar</button>`,
+        : slots.length > MIN_BATTERS ? `<button class="linkbtn danger" data-luslot="${side}|${i}" aria-label="Quitar el turno ${i + 1}">Quitar</button>` : "",
     ].filter(Boolean).join("");
     return `<tr class="${k ? "subrow" : ""}">
       <td class="ord num">${k ? "" : i + 1}</td>
@@ -2259,20 +3234,10 @@ const fmtEra = (cl, outs) => outs > 0 ? ((+cl || 0) * INNINGS * 3 / outs).toFixe
 const newPitcher = (player = "", typed = false, EL = "0.0") => ({ player, dec: "", EL, H: 0, C: 0, CL: 0, BB: 0, K: 0, typed });
 
 /* Pitcheo de ejemplo: un pitcher completo por equipo, con lo que bateó el rival. */
+/* Pitcheo en blanco: un renglón para el abridor, sin nombre ni números. */
 function defaultPitching(side, S = bx()){
   const team = side === "a" ? S.away : S.home;
-  const names = rosterOf(team);
-  if (!names.length) return [];
-  const own = S.sides[side] || [], opp = S.sides[side === "a" ? "b" : "a"] || [];
-  const inLineup = new Set(own.flatMap(s => s.entries.map(e => e.player)));
-  const onMound = own.map(lastOf).find(e => e.pos === "P");
-  const player = onMound && onMound.player ? onMound.player : (names.find(n => !inLineup.has(n)) || names[0]);
-  const oppSum = k => opp.reduce((t, s) => t + s.entries.reduce((u, e) => u + (+e[k] || 0), 0), 0);
-  const total = arr => arr.reduce((t, v) => t + (+v || 0), 0);
-  const mine = total(side === "a" ? S.a : S.h), theirs = total(side === "a" ? S.h : S.a);
-  return [{ ...newPitcher(player, false, "7.0"),
-    dec: mine > theirs ? "G" : mine < theirs ? "P" : "",
-    H: oppSum("H"), C: theirs, CL: Math.max(0, theirs - 1), BB: oppSum("BB"), K: oppSum("K") }];
+  return rosterOf(team).length ? [newPitcher("", false, "")] : [];
 }
 
 function pitchCheck(team, side){
@@ -2430,8 +3395,8 @@ function setCaptureGame(g){
   if (g){ capState.week = g.w; capState.cat = g.c; }
   capState.away = g ? g.a : "";
   capState.home = g ? g.b : "";
-  capState.a = SAMPLE_INN.a.slice();
-  capState.h = SAMPLE_INN.h.slice();
+  capState.a = Array(INNINGS).fill("");
+  capState.h = Array(INNINGS).fill("");
   capState.sides = { a: defaultLineup(capState.away, "a"), b: defaultLineup(capState.home, "b") };
   capState.pitch = { a: defaultPitching("a", capState), b: defaultPitching("b", capState) };
   capState.boxSide = "a";
@@ -2686,6 +3651,14 @@ function restoreLeagueData(){
   withdrawn = [];
   teamForm = null;
   openTeam = null;
+  WEEK1 = BASE_WEEK1; WEEKS = BASE_WEEKS; TODAY_WEEK = weekOf(TODAY);
+  seasonsCreated = 0;
+  seasonDraft = null;
+  replaceArr(SEASON_ARCHIVE, demo ? demoArchive() : []);
+  viewingSeason = null;
+  liveState = null;
+  SEASON_BOXES = {};
+  Object.assign(PLAYOFFS, emptyPlayoffs());
 }
 /* LEAGUE.logo es el que se sube en Personalización ("" = sin logo); si no hay, el de la demo. */
 const leagueLogo = () => LEAGUE.logo !== undefined ? LEAGUE.logo : appMode === "demo" ? LOGO : "";
@@ -2699,11 +3672,11 @@ let accounts = [
   { id: "ejemplo-palmas", name: "Liga Dominical Las Palmas", note: "Ejemplo", admin: "Administradora de ejemplo", plan: "Mensual", paidUntil: "2026-09-19", blocked: false },
   { id: "ejemplo-empresarial", name: "Liga Empresarial del Valle", note: "Ejemplo", admin: "Administrador de ejemplo", plan: "Anual", paidUntil: "2026-08-30", blocked: false },
 ];
-const ADMIN_SCREENS = ["admin", "capturar", "inscripciones", "programar", "admequipos", "temporada", "personalizar"];
+const ADMIN_SCREENS = ["admin", "capturar", "inscripciones", "programar", "admequipos", "temporada", "nuevatemporada", "personalizar"];
 /* En la demo se puede ver la liga como administrador o como visitante (equipos y público):
    el visitante no ve las pantallas ni los botones del administrador. */
 let viewer = "admin";
-const isVisitor = () => route === "app" && appMode === "demo" && viewer === "visitante";
+const isVisitor = () => route === "app" && ((appMode === "demo" && viewer === "visitante") || !!viewingSeason);
 const currentAccount = () => accounts.find(a => a.id === (appMode === "demo" ? "valle-alto" : "mi-liga"));
 const isLocked = () => route === "app" && !!(currentAccount() || {}).blocked;
 const daysUntil = d => Math.round((parseD(d) - parseD(TODAY)) / DAY_MS);
@@ -2761,18 +3734,21 @@ function renderChrome(){
     logo.innerHTML = leagueLogo() ? `<img src="${leagueLogo()}" alt="">` : `<i class="fa-solid fa-baseball-bat-ball" aria-hidden="true"></i>`;
   }
   setText("brand-l1", LEAGUE.name);
-  setText("brand-l2", [LEAGUE.sport, `Temporada ${LEAGUE.season}`].filter(Boolean).join(" · "));
+  setText("brand-l2", SEASON_ARCHIVE.length
+    ? (LEAGUE.sport ? `${LEAGUE.sport} ·` : "")
+    : [LEAGUE.sport, `Temporada ${LEAGUE.season}`].filter(Boolean).join(" · "));
   const bar = document.getElementById("demobar");
   if (bar) bar.hidden = false;
   setText("demotag", demo ? "Demo" : "Liga nueva");
   setText("demotext", demo
-    ? (isVisitor() ? "Así ven el sitio los equipos y el público." : isLocked() ? "Edición bloqueada: la liga tiene un pago pendiente." : "Prototipo de STRIKEOUT con datos de ejemplo.")
+    ? (viewingSeason ? `Temporada ${LEAGUE.season} en solo lectura.` : isVisitor() ? "Así ven el sitio los equipos y el público." : isLocked() ? "Edición bloqueada: la liga tiene un pago pendiente." : "Prototipo de STRIKEOUT con datos de ejemplo.")
     : "Sin equipos, juegos ni resultados: lo que captures dura mientras la página esté abierta.");
   const viewAs = document.getElementById("viewas");
   if (viewAs){
     viewAs.hidden = !demo;
     viewAs.querySelectorAll("[data-viewas]").forEach(b => b.setAttribute("aria-checked", String(b.dataset.viewas === viewer)));
   }
+  renderSeasonPicker();
   renderFooter();
 }
 
@@ -2826,6 +3802,8 @@ function viewAdmin(){
     inscripciones: owe ? `${owe} sin pagar` : teams.length ? "Al corriente" : "",
     temporada: `${SEASON.games} juegos`,
     personalizar: (ACCENTS.find(x => x.id === accentId) || ACCENTS[0]).name,
+    playoffs: PLAYOFFS.closed ? "Publicados" : "Temporada regular abierta",
+    nuevatemporada: nextSeasonName() ? `Temporada ${nextSeasonName()}` : "",
   };
   return `<div class="screen">
     <div class="page-head">
@@ -3410,6 +4388,55 @@ document.addEventListener("click", e => {
       : "Vista de administrador: con las pantallas del administrador");
   }
   if (e.target.closest("#to-landing")) return openRoute("inicio");
+  const statSortBtn = e.target.closest("[data-statsort]");
+  if (statSortBtn){
+    const k = statSortBtn.dataset.statsort;
+    statSort = statSort.key === k ? { key: k, dir: -statSort.dir } : { key: k, dir: k === "name" ? 1 : -1 };
+    return render();
+  }
+
+  const poCatBtn = e.target.closest("[data-pocat]");
+  if (poCatBtn){ poCat = poCatBtn.dataset.pocat; return render(); }
+  const poAdd = e.target.closest("[data-poadd]");
+  if (poAdd) return addPlayoffGame(+poAdd.dataset.poadd);
+  const poUndo = e.target.closest("[data-poundo]");
+  if (poUndo){
+    const key = poRegistry[+poUndo.dataset.poundo];
+    const games = key && PLAYOFFS.results[key];
+    if (!games || !games.length) return;
+    const [catId, , hi, lo] = key.split("|");
+    return askConfirm({
+      title: `¿Quitar el juego ${games.length} de ${hi} vs ${lo}?`,
+      body: "Se borra su marcador. Si la serie ya estaba decidida, la siguiente ronda vuelve a quedar pendiente.",
+      onConfirm: () => { games.pop(); if (!games.length) delete PLAYOFFS.results[key]; prunePlayoffs(catId); render(); toast("Juego de playoffs quitado"); },
+    });
+  }
+  if (e.target.closest("[data-poclose]")){
+    const cats = CATEGORIES.filter(c => seedsOf(c.id).length >= 2);
+    if (!cats.length) return toast("Ninguna categoría tiene equipos suficientes para playoffs");
+    const left = regularGamesLeft();
+    return askConfirm({
+      title: "¿Cerrar la temporada regular?",
+      body: `La tabla de hoy queda como final y se publican los playoffs: ${cats.map(c => `${c.name} con ${seedsOf(c.id).length} equipos`).join(", ")}.${left ? ` Todavía faltan ${plural(left, "juego", "juegos")} de temporada regular: ya no cuentan para clasificar.` : ""}`,
+      ok: "Cerrar y publicar playoffs",
+      onConfirm: () => { closeRegularSeason(); go("playoffs"); toast("Temporada regular cerrada: los playoffs ya están publicados"); },
+    });
+  }
+  if (e.target.closest("[data-poreopen]")){
+    return askConfirm({
+      title: "¿Reabrir la temporada regular?",
+      body: "Se despublican los playoffs y la llave vuelve a proyectarse con el standing.",
+      ok: "Reabrir",
+      onConfirm: () => { Object.assign(PLAYOFFS, emptyPlayoffs()); render(); toast("Temporada regular reabierta"); },
+    });
+  }
+
+  const seasonBtn = e.target.closest("[data-viewseason]");
+  if (seasonBtn) return viewSeason(seasonBtn.dataset.viewseason);
+
+  const sdBtn = e.target.closest("[data-sdall], [data-sdshow], [data-sdgames], [data-sdplayoffs], [data-sdadd], [data-sddel], [data-sdcancel], [data-sdcreate]");
+  if (sdBtn && seasonDraft) return seasonAction(sdBtn);
+
   const bfAccent = e.target.closest("[data-bfaccent]");
   if (bfAccent && brandForm){ brandForm.accent = bfAccent.dataset.bfaccent; return render(); }
   if (e.target.closest("[data-bflogoremove]") && brandForm){ brandForm.logo = ""; return render(); }
@@ -3482,6 +4509,19 @@ document.addEventListener("click", e => {
   if (ccat){ calCat = ccat.dataset.calcat; calWeek = null; openGame = null; return render(); }
   const gm = e.target.closest("[data-game]");
   if (gm){ openGame = openGame === gm.dataset.game ? null : gm.dataset.game; return render(); }
+
+  const viewGameBtn = e.target.closest("[data-viewgame]");
+  if (viewGameBtn) return openGamePage(viewGameBtn.dataset.viewgame);
+  if (e.target.closest("[data-teamback]")){
+    screen = isVisitor() && ADMIN_SCREENS.includes(teamBack) ? "inicio" : teamBack === "equipo" ? "equipos" : teamBack;
+    render();
+    return window.scrollTo({ top: 0 });
+  }
+  if (e.target.closest("[data-gameback]")){
+    screen = isVisitor() && ADMIN_SCREENS.includes(gameBack) ? "inicio" : gameBack;
+    render();
+    return window.scrollTo({ top: 0 });
+  }
 
   const jump = e.target.closest("[data-jump]");
   if (jump){
@@ -3752,7 +4792,7 @@ document.addEventListener("click", e => {
   if (s){ sortKey = sortKey === s.dataset.sort ? "default" : s.dataset.sort; return render(); }
 
   const team = e.target.closest("[data-team]");
-  if (team){ openTeam = team.dataset.team; teamCat = categoryOf(openTeam) || teamCat; screen = "equipos"; render(); return window.scrollTo({ top:0 }); }
+  if (team) return openTeamPage(team.dataset.team);
 
   if (e.target.closest("#save")) return publish();
   if (e.target.closest("#reset")) return resetDemo();
@@ -3762,6 +4802,10 @@ document.addEventListener("click", e => {
 });
 
 document.addEventListener("input", e => {
+  if (["sd-season", "sd-year", "sd-newname"].includes(e.target.id) && seasonDraft){
+    seasonDraft[{ "sd-season": "season", "sd-year": "year", "sd-newname": "newName" }[e.target.id]] = e.target.value;
+    return refreshSeason();
+  }
   if ((e.target.id === "bf-name" || e.target.id === "bf-sport") && brandForm){
     brandForm[e.target.id === "bf-name" ? "name" : "sport"] = e.target.value;
     return refreshBrand();
@@ -3814,6 +4858,19 @@ document.addEventListener("change", e => {
   }
   if (e.target.id === "tf-cat"){ teamForm.cat = e.target.value; return render(); }
   if (e.target.id === "tf-mgrplayer"){ teamForm.mgrPlayer = e.target.value; return render(); }
+  if (e.target.id === "season-select") return viewSeason(e.target.value);
+  const sdIn = e.target.closest("[data-sdinc], [data-sdcat], [data-sdroster], [data-sdpaid]");
+  if (sdIn && seasonDraft){
+    const ds = sdIn.dataset, key = ds.sdinc || ds.sdcat || ds.sdroster || ds.sdpaid;
+    const t = seasonDraft.teams.find(x => x.key === key);
+    if (!t) return;
+    if (ds.sdinc) t.include = sdIn.checked;
+    else if (ds.sdcat) t.cat = sdIn.value;
+    else if (ds.sdroster) t.keepRoster = sdIn.checked;
+    else t.paid = sdIn.checked;
+    return render();
+  }
+  if (e.target.id === "sd-newcat" && seasonDraft){ seasonDraft.newCat = e.target.value; return; }
   if (e.target.id === "bf-logo"){
     const file = e.target.files && e.target.files[0];
     if (!file || !brandForm) return;
