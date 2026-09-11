@@ -776,7 +776,7 @@ function viewInicio(){
           ? `<img src="${leagueLogo()}" alt="${esc(leagueFull())}"${leagueLogo() === LOGO ? ` class="logo-dark"` : ""}>`
           : `<span class="noimg">Sin imagen</span>`}</div>
         <div class="hero2-text">
-          <p class="hero2-kicker"><i class="fa-solid fa-baseball" aria-hidden="true"></i> ${esc(LEAGUE.year)}${teams ? ` · Semana ${TODAY_WEEK}` : ""}</p>
+          <p class="hero2-kicker"><i class="fa-solid fa-baseball" aria-hidden="true"></i> ${esc(LEAGUE.year)}</p>
           <h1>${esc(leagueFull())}</h1>
           <p class="hero2-sub">${teams
             ? `Resultados, standing, calendario y estadísticas de las ${CATEGORIES.filter(c => c.active).length} categorías de la liga, al día.`
@@ -792,7 +792,6 @@ function viewInicio(){
         <div><b class="num">${CATEGORIES.filter(c => c.active).length}</b><span>Categorías</span></div>
         <div><b class="num">${teams}</b><span>Equipos</span></div>
         <div><b class="num">${played.length}</b><span>Juegos jugados</span></div>
-        <div><b class="num">${TODAY_WEEK}</b><span>Semana</span></div>
         <div><b>${published ? "Ahora" : lastPlayed ? fmtDay(lastPlayed) : "—"}</b><span>Último resultado</span></div>
       </div>
     </section>
