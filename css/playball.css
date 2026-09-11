@@ -1615,3 +1615,46 @@ button.gteam{margin:0; padding:0; border:0; background:none; color:inherit; font
 .po-sub{margin:0; padding:8px 18px; font-size:10.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-ink); background:var(--accent-tint)}
 .schedlist .potag{margin-left:auto}
 .schedlist .potag + .catbadge{margin-left:0}
+
+/* ---------- nueva temporada: columnas y cambio de categoría ---------- */
+.sdrow.sdhead{padding-top:7px; padding-bottom:7px; background:transparent; font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+.sdtag.move{background:var(--warn-tint); color:var(--warn-ink); border:1px solid color-mix(in srgb, var(--warn) 45%, transparent)}
+.sdtag.move i{font-size:8.5px; margin-right:2px}
+@media (max-width:1100px){ .sdrow.sdhead{display:none} }
+
+/* ---------- perfil del equipo: temporada anterior ---------- */
+.tpast{display:grid; grid-template-columns:repeat(3, minmax(0,1fr)) auto; align-items:stretch}
+.tpast > div{display:flex; flex-direction:column; gap:5px; padding:16px 18px; border-right:1px solid var(--line)}
+.tpast > div:last-child{border-right:0}
+.tpast .k{font-size:10px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3)}
+.tpast .v{font-family:"Archivo",sans-serif; font-variation-settings:"wdth" 112; font-weight:900; font-size:23px; line-height:1.1; text-transform:uppercase}
+.tpast .d{font-size:12.5px; color:var(--ink-2)}
+.tpast .go{justify-content:center}
+.tpast .go .btn{display:inline-flex; align-items:center; gap:8px; white-space:nowrap}
+.pfin{align-self:flex-start; display:inline-flex; align-items:center; gap:7px; padding:5px 11px; border-radius:999px; font-size:12px; font-weight:800; letter-spacing:.05em; text-transform:uppercase; white-space:nowrap}
+.pfin.champ{background:#F5C94A; color:#1A1400}
+.pfin.sub{background:var(--accent); color:var(--on-accent)}
+.pfin.elim{background:var(--accent-tint); color:var(--accent-ink)}
+.pfin.out, .pfin.open, .pfin.none{background:var(--ground); color:var(--ink-2); box-shadow:inset 0 0 0 1px var(--line-2)}
+.tpast-note{margin:0; padding:16px 18px; font-size:13.5px; color:var(--ink-2)}
+.tpast-list{list-style:none; margin:0; padding:0; border-top:1px solid var(--line)}
+.tpast-list li{display:grid; grid-template-columns:140px 120px minmax(0,1fr) auto auto; align-items:center; gap:8px 16px; padding:10px 18px; border-bottom:1px solid var(--line); font-size:13.5px}
+.tpast-list li:last-child{border-bottom:0}
+@media (max-width:900px){
+  .tpast{grid-template-columns:minmax(0,1fr)}
+  .tpast > div{border-right:0; border-bottom:1px solid var(--line)}
+  .tpast-list li{grid-template-columns:minmax(0,1fr) auto}
+}
+
+/* ---------- líderes: bateo y pitcheo ---------- */
+.lead{box-shadow:var(--shadow); border-radius:14px}
+.lead li.none{justify-content:center; padding:18px 14px; color:var(--ink-3); font-size:12.5px; text-align:center}
+.lead li .who small{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.leadgrid + .section-label{margin-top:14px}
+
+/* ---------- capturar: se jugó, forfit o no se jugó ---------- */
+.cap-st-row{padding-top:0}
+.capstatus{display:flex; align-items:flex-start; gap:14px; padding:18px}
+.capstatus > i{flex:none; margin-top:2px; font-size:26px; color:var(--accent-ink)}
+.capstatus p{margin:0; font-size:14px; line-height:1.55; color:var(--ink-2)}
+.capstatus b{color:var(--ink)}

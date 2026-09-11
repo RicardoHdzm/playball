@@ -349,26 +349,92 @@ const RIVAL_LEADERS = {
         { n:"M. Robles", t:"Bronx", v:1 }],
 };
 
-/* Los líderes salen de los mismos números del roster, no de una lista aparte:
-   si cambia un boxscore, cambia la tabla de líderes. */
-function leaders(key){
-  const mine = CAIMANES_ROSTER
-    .filter(p => p.VB >= p.JJ * 2.1)
-    .map(p => ({ n:p.name, t:STATS_TEAM, v: key === "avg" ? p.H / p.VB : p[key] }));
-  return mine.concat(RIVAL_LEADERS[key])
-    .sort((a,b) => b.v - a.v)
-    .slice(0, 5)
-    .map(r => ({ ...r, txt: key === "avg" ? fmtPct(r.v) : String(r.v) }));
+/* Pitcheo de ejemplo de la temporada 19 (Novatos): entradas lanzadas en outs, carreras limpias,
+   ponches y decisiones. Lo que se capture en los box scores se suma encima. */
+const ERA_LEADERS = [
+  { n:"Ruben Perez",     t:"Caimanes de Villas", outs:49, CL:5, K:14, G:1, P:1, S:0 },
+  { n:"L. Peraza",       t:"Tamagochis",         outs:45, CL:5, K:11, G:0, P:2, S:0 },
+  { n:"Ricardo Santoyo", t:"Caimanes de Villas", outs:42, CL:6, K:9,  G:0, P:2, S:1 },
+  { n:"H. Camacho",      t:"Bandidos",           outs:40, CL:6, K:16, G:0, P:2, S:0 },
+  { n:"S. Iribe",        t:"Soja Sushi",         outs:39, CL:6, K:8,  G:1, P:1, S:0 },
+  { n:"M. Sauceda",      t:"Sox",                outs:36, CL:7, K:13, G:3, P:0, S:0 },
+  { n:"J. Leyva",        t:"Primos",             outs:33, CL:8, K:10, G:2, P:1, S:1 },
+];
+
+/* Totales por jugador de los box scores capturados de una categoría: bateo y pitcheo. */
+function boxTotals(catId){
+  const bat = new Map(), pit = new Map();
+  for (const g of calGames()){
+    if (g.c !== catId || g.st !== "F") continue;
+    const box = boxOf(g);
+    if (!box) continue;
+    for (const side of ["a", "b"]){
+      const team = g[side];
+      for (const s of (box.sides && box.sides[side]) || []) for (const e of s.entries){
+        const name = normName(e.player);
+        if (!name) continue;
+        const k = name + "|" + team;
+        const r = bat.get(k) || { n: name, t: team, games: new Set(), VB: 0, H: 0, HR: 0, CP: 0 };
+        r.games.add(g.id);
+        for (const f of ["VB", "H", "HR", "CP"]) r[f] += +e[f] || 0;
+        bat.set(k, r);
+      }
+      for (const p of (box.pitch && box.pitch[side]) || []){
+        const name = normName(p.player);
+        if (!name) continue;
+        const k = name + "|" + team;
+        const r = pit.get(k) || { n: name, t: team, outs: 0, CL: 0, K: 0, G: 0, P: 0, S: 0 };
+        r.outs += outsOf(p.EL) || 0;
+        r.CL += +p.CL || 0;
+        r.K += +p.K || 0;
+        if (p.dec === "G" || p.dec === "P" || p.dec === "S") r[p.dec]++;
+        pit.set(k, r);
+      }
+    }
+  }
+  return { bat: [...bat.values()].map(({ games, ...r }) => ({ ...r, JJ: games.size })), pit: [...pit.values()] };
 }
 
-/* El pitcheo todavía no se captura por jugador, así que esta sí es lista fija. */
-const ERA_LEADERS = [
-  { n:"Ruben Perez",     t:"Caimanes de Villas", txt:"2.14" },
-  { n:"L. Peraza",       t:"Tamagochis",         txt:"2.36" },
-  { n:"Ricardo Santoyo", t:"Caimanes de Villas", txt:"3.02" },
-  { n:"H. Camacho",      t:"Bandidos",           txt:"3.18" },
-  { n:"S. Iribe",        t:"Soja Sushi",         txt:"3.44" },
-];
+/* Jugadores de una categoría con sus totales: los de ejemplo (demo, temporada 19, Novatos) más los capturados. */
+function leaderPools(catId){
+  const sample = appMode === "demo" && !seasonsCreated && !viewingSeason && catId === mainCat().id;
+  const bat = new Map(), pit = new Map();
+  if (sample){
+    for (const p of CAIMANES_ROSTER) bat.set(p.name + "|" + STATS_TEAM, { n: p.name, t: STATS_TEAM, JJ: p.JJ, VB: p.VB, H: p.H, HR: p.HR, CP: p.CP });
+    for (const p of ERA_LEADERS) pit.set(p.n + "|" + p.t, { ...p });
+  }
+  const box = boxTotals(catId);
+  for (const r of box.bat){
+    const k = r.n + "|" + r.t, cur = bat.get(k);
+    if (cur) for (const f of ["JJ", "VB", "H", "HR", "CP"]) cur[f] += r[f];
+    else bat.set(k, { ...r });
+  }
+  for (const r of box.pit){
+    const k = r.n + "|" + r.t, cur = pit.get(k);
+    if (cur) for (const f of ["outs", "CL", "K", "G", "P", "S"]) cur[f] = (cur[f] || 0) + r[f];
+    else pit.set(k, { ...r });
+  }
+  return { sample, bat: [...bat.values()], pit: [...pit.values()], rivals: sample ? RIVAL_LEADERS : { avg: [], CP: [], HR: [] } };
+}
+
+/* Los 5 primeros de una estadística. Efectividad de menor a mayor; lo demás de mayor a menor. */
+function leaderList(pools, key){
+  const MIN_OUTS = 9;   // efectividad: mínimo 3 entradas lanzadas
+  const era = r => r.CL * INNINGS * 3 / r.outs;
+  const defs = {
+    avg: { rows: pools.bat.filter(p => p.VB > 0 && p.VB >= p.JJ * 2.1).map(p => ({ ...p, v: p.H / p.VB, extra: `${p.H} de ${p.VB}` })).concat(pools.rivals.avg), txt: v => fmtPct(v) },
+    CP:  { rows: pools.bat.filter(p => p.CP > 0).map(p => ({ ...p, v: p.CP })).concat(pools.rivals.CP), txt: v => String(v) },
+    HR:  { rows: pools.bat.filter(p => p.HR > 0).map(p => ({ ...p, v: p.HR })).concat(pools.rivals.HR), txt: v => String(v) },
+    EFE: { rows: pools.pit.filter(p => p.outs >= MIN_OUTS).map(p => ({ ...p, v: era(p), extra: `${fmtEL(p.outs)} EL` })), txt: v => v.toFixed(2), asc: true },
+    G:   { rows: pools.pit.filter(p => p.G > 0).map(p => ({ ...p, v: p.G, extra: `${p.G}-${p.P}` })), txt: v => String(v) },
+    K:   { rows: pools.pit.filter(p => p.K > 0).map(p => ({ ...p, v: p.K, extra: `${fmtEL(p.outs)} EL` })), txt: v => String(v) },
+    EL:  { rows: pools.pit.filter(p => p.outs > 0).map(p => ({ ...p, v: p.outs })), txt: v => fmtEL(v) },
+  }[key];
+  return defs.rows
+    .sort((a, b) => (defs.asc ? a.v - b.v : b.v - a.v) || a.n.localeCompare(b.n))
+    .slice(0, 5)
+    .map(r => ({ ...r, txt: defs.txt(r.v) }));
+}
 
 /* ---------------- estado ---------------- */
 let appMode = "demo";           // "demo" (Liga Valle Alto) o "liga" (liga nueva, vacía)
@@ -683,9 +749,6 @@ function viewInicio(){
       </div>
     </div>
 
-    <p class="sub" style="text-align:center; margin-top:6px">
-      Cada equipo puede mostrar esta misma tabla en su propio sitio, en automático, sin copiarla a mano.
-    </p>
   </div>`;
 }
 
@@ -837,6 +900,81 @@ function batStatsTable(team, teamJJ){
     </table></div>`;
 }
 
+/* ---------------- perfil: temporadas anteriores ---------------- */
+/* Temporadas archivadas anteriores a la que se está viendo, de la más reciente a la más vieja. */
+function seasonsBefore(){
+  if (!viewingSeason) return SEASON_ARCHIVE;
+  const i = SEASON_ARCHIVE.findIndex(s => s.season === viewingSeason);
+  return i < 0 ? [] : SEASON_ARCHIVE.slice(i + 1);
+}
+
+/* Hasta dónde llegó un equipo en los playoffs de una temporada archivada. */
+function playoffFinish(team, s, cat){
+  const po = s.po;
+  if (!po || !po.closed || !po.cats[cat]) return { cls: "none", txt: "Sin playoffs", detail: "Esa temporada no tuvo playoffs publicados" };
+  const seeds = po.cats[cat].seeds;
+  const seed = seeds.find(x => x.team === team);
+  if (!seed) return { cls: "out", txt: "No clasificó", detail: `Clasificaban los ${seeds.length} primeros` };
+  const br = buildBracket(cat, seeds, { ...po.results, ...derivedResults(cat, s.games || []) });
+  if (br.champion && br.champion.team === team) return { cls: "champ", txt: "Campeón", detail: `Sembrado ${seed.seed} de ${seeds.length}` };
+  for (const rd of br.rounds){
+    const sr = rd.series.find(x => !x.placeholder && (x.hi.team === team || x.lo.team === team));
+    if (!sr) continue;
+    if (!sr.winner) return { cls: "open", txt: `Llegó a ${rd.name.toLowerCase()}`, detail: "La serie no se terminó de jugar" };
+    if (sr.winner.team !== team){
+      const mine = sr.hi.team === team ? sr.wins.hi : sr.wins.lo, theirs = sr.hi.team === team ? sr.wins.lo : sr.wins.hi;
+      return rd.name === "Final"
+        ? { cls: "sub", txt: "Subcampeón", detail: `Perdió la final ${mine}–${theirs} ante ${sr.winner.team}` }
+        : { cls: "elim", txt: `Eliminado en ${rd.name.toLowerCase()}`, detail: `Cayó ${mine}–${theirs} ante ${sr.winner.team} · sembrado ${seed.seed}` };
+    }
+  }
+  return { cls: "open", txt: "Clasificó", detail: `Sembrado ${seed.seed} de ${seeds.length}` };
+}
+
+/* Lo que hizo un equipo en una temporada archivada, o null si no jugó. */
+function teamSeasonSummary(team, s){
+  const info = s.teamInfo[team];
+  if (!info) return null;
+  const rows = s.categories[info.cat] || [];
+  const row = rows.find(r => r.team === team);
+  return {
+    s, cat: info.cat,
+    place: row ? `${row.place}º de ${rows.length}` : info.baja ? "Se dio de baja" : "—",
+    rec: row ? `${row.JG}-${row.JP}${row.JE ? `-${row.JE}` : ""}` : "",
+    fin: info.baja ? { cls: "none", txt: "Se dio de baja", detail: "" } : playoffFinish(team, s, info.cat),
+  };
+}
+
+function teamPastPanel(team){
+  const past = seasonsBefore();
+  if (!past.length) return "";
+  const prev = past[0];
+  const sums = past.map(s => teamSeasonSummary(team, s)).filter(Boolean);
+  const p = teamSeasonSummary(team, prev);
+  const FIN_ICON = { champ: "fa-trophy", sub: "fa-medal", elim: "fa-flag", out: "fa-circle-minus", open: "fa-sitemap", none: "fa-minus" };
+  const fin = f => `<span class="pfin ${f.cls}"><i class="fa-solid ${FIN_ICON[f.cls]}" aria-hidden="true"></i>${esc(f.txt)}</span>`;
+  const older = sums.filter(x => x.s !== prev);
+  return `<section class="panel">
+    <div class="panel-h">
+      <h2 class="display">Temporada anterior · ${esc(prev.season)}</h2>
+      <span class="meta">${esc(prev.year)}${prev.example ? " · datos de ejemplo" : ""}</span>
+    </div>
+    ${p ? `<div class="tpast">
+      <div><span class="k">Categoría</span><span class="v">${esc(catName(p.cat))}</span><span class="d">${p.cat === categoryOf(team) || viewingSeason ? "La misma categoría" : `Hoy juega en ${esc(catName(categoryOf(team)))}`}</span></div>
+      <div><span class="k">Temporada regular</span><span class="v">${esc(p.place)}</span><span class="d">${p.rec ? `Récord ${esc(p.rec)}` : ""}</span></div>
+      <div><span class="k">Playoffs</span>${fin(p.fin)}<span class="d">${esc(p.fin.detail)}</span></div>
+      <div class="go"><button type="button" class="btn" data-viewseason="${esc(prev.season)}"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Ver temporada ${esc(prev.season)}</button></div>
+    </div>` : `<p class="tpast-note">${esc(team)} no jugó la temporada ${esc(prev.season)}.${sums.length ? "" : " Es su primera temporada registrada en la liga."}</p>`}
+    ${older.length ? `<ul class="tpast-list">${older.map(x => `<li>
+      <b>Temporada ${esc(x.s.season)}</b>
+      <span>${esc(catName(x.cat))}</span>
+      <span>${esc(x.place)}${x.rec ? ` · ${esc(x.rec)}` : ""}</span>
+      ${fin(x.fin)}
+      <button type="button" class="linkbtn" data-viewseason="${esc(x.s.season)}">Ver temporada</button>
+    </li>`).join("")}</ul>` : ""}
+  </section>`;
+}
+
 /* ---------------- página de un equipo ---------------- */
 let teamBack = "equipos";        // pantalla a la que regresa "Volver" desde la página de un equipo
 
@@ -906,6 +1044,8 @@ function viewEquipo(){
       <span>${next.d === TODAY ? "Hoy" : `${DIAS[parseD(next.d).getUTCDay()]} ${fmtDay(next.d)}`} · ${next.h} · vs <b>${esc(next.a === team ? next.b : next.a)}</b> · ${esc(fieldOf(next))}</span>
       <button type="button" class="linkbtn" data-viewgame="${next.id}">Ver juego →</button>
     </div>` : ""}
+
+    ${teamPastPanel(team)}
 
     <section class="panel">
       <div class="panel-h"><h2 class="display">${isCaimanes ? "Estadísticas de bateo" : "Roster"}</h2><span class="meta">${roster ? plural(roster.length, "jugador", "jugadores") : "Sin roster"}</span></div>
@@ -1318,45 +1458,50 @@ function centerWeek(){
 
 function viewLideres(){
   const cat = CATEGORIES.find(c => c.id === leadCat) || mainCat();
-  const hasBox = appMode === "demo" && !seasonsCreated && !viewingSeason && cat.id === mainCat().id;   // el único roster con boxscores de ejemplo
-  const card = (title, unit, rows) => `
+  const pools = leaderPools(cat.id);
+  const card = (title, unit, rows, empty) => `
     <div class="lead">
       <h3 class="display">${title} <span>${unit}</span></h3>
-      <ol>${rows.map((r, i) => `<li>
+      <ol>${rows.length ? rows.map((r, i) => `<li>
         <span class="rk">${i + 1}</span>
-        <span class="who"><b>${esc(r.n)}</b><small>${esc(r.t)}</small></span>
+        <span class="who"><b>${esc(r.n)}</b><small>${esc(r.t)}${r.extra ? ` · ${esc(r.extra)}` : ""}</small></span>
         <span class="v">${r.txt}</span>
-      </li>`).join("")}</ol>
+      </li>`).join("") : `<li class="none">${empty}</li>`}</ol>
     </div>`;
+  const hasBat = pools.bat.length || pools.rivals.avg.length;
+  const hasPit = pools.pit.length;
   return `
   <div class="screen">
     <div class="page-head">
       <div>
         <p class="eyebrow">${LEAGUE.name} · Temporada ${LEAGUE.season} · ${LEAGUE.year}</p>
         <h1>Líderes</h1>
-        <p class="sub">Se calculan de los boxscores capturados, por categoría. Mínimo 2.1 turnos por juego jugado para aparecer en promedio.</p>
+        <p class="sub">Se calculan de los box scores capturados, por categoría. Promedio: mínimo 2.1 turnos al bat por juego jugado. Efectividad: mínimo 3 entradas lanzadas, a ${INNINGS} entradas.</p>
       </div>
       <div class="tabs">
         ${CATEGORIES.map(c => `<button class="tab" data-leadcat="${c.id}" aria-pressed="${c.id === cat.id}">${esc(c.name)}</button>`).join("")}
       </div>
     </div>
-    ${hasBox ? `
+    ${hasBat || hasPit ? `
+    <p class="section-label">Bateo</p>
     <div class="leadgrid">
-      ${card("Promedio", "AVG", leaders("avg"))}
-      ${card("Carreras producidas", "CP", leaders("CP"))}
-      ${card("Cuadrangulares", "HR", leaders("HR"))}
-      ${card("Efectividad", "EFE", ERA_LEADERS)}
+      ${card("Promedio", "AVG", leaderList(pools, "avg"), "Nadie con los turnos mínimos todavía")}
+      ${card("Carreras producidas", "CP", leaderList(pools, "CP"), "Sin carreras producidas todavía")}
+      ${card("Jonrones", "HR", leaderList(pools, "HR"), "Sin jonrones todavía")}
+    </div>
+    <p class="section-label">Pitcheo</p>
+    <div class="leadgrid">
+      ${card("Efectividad", "EFE", leaderList(pools, "EFE"), "Nadie con 3 entradas lanzadas todavía")}
+      ${card("Juegos ganados", "G", leaderList(pools, "G"), "Sin decisiones capturadas todavía")}
+      ${card("Ponches", "K", leaderList(pools, "K"), "Sin ponches capturados todavía")}
+      ${card("Entradas lanzadas", "EL", leaderList(pools, "EL"), "Sin pitcheo capturado todavía")}
     </div>` : `
     <div class="panel"><div class="empty">
-      <strong>Sin boxscores capturados en ${esc(cat.name)}</strong>
+      <strong>Sin box scores capturados en ${esc(cat.name)}</strong>
       <span>${cat.active
-        ? "Hay resultados, pero todavía nadie captura el bateo por jugador. Los líderes aparecen con el primer boxscore."
+        ? "Hay resultados, pero todavía nadie captura el bateo y el pitcheo por jugador. Los líderes aparecen con el primer box score."
         : "Todavía no hay equipos ni juegos en esta categoría."}</span>
     </div></div>`}
-    <div class="note">
-      <span class="tag">Por qué importa</span>
-      <span>Los líderes son lo que hace que los jugadores entren a la página cada semana. La liga captura una vez y de ahí salen los premios de fin de temporada — campeón bateador, líder de producidas, mejor efectividad — <b>sin sacar la calculadora</b>.</span>
-    </div>
   </div>`;
 }
 
@@ -2401,7 +2546,8 @@ function viewNuevaTemporada(){
   const order = { actual: 0, nuevo: 1, baja: 2, pasada: 3 };
   const row = t => `<li class="sdrow${t.include ? "" : " off"}">
       <label class="sdinc"><input type="checkbox" data-sdinc="${t.key}"${t.include ? " checked" : ""}><span class="sr-only">Incluir a ${esc(t.name)}</span></label>
-      <span class="sdteam">${crestOf(t)}<span class="sdname"><b>${esc(t.name)}${TAG[t.from]}</b><small>${esc(t.note)}${
+      <span class="sdteam">${crestOf(t)}<span class="sdname"><b>${esc(t.name)}${TAG[t.from]}${
+        t.include && t.from !== "nuevo" && t.cat !== t.lastCat ? `<span class="sdtag move"><i class="fa-solid fa-right-left" aria-hidden="true"></i> Cambia a ${esc(catName(t.cat))}</span>` : ""}</b><small>${esc(t.note)}${
         t.include && t.from !== "nuevo" && t.cat !== t.lastCat ? ` · pasa a ${esc(catName(t.cat))}` : ""}</small></span></span>
       <select data-sdcat="${t.key}" aria-label="Categoría de ${esc(t.name)}"${t.include ? "" : " disabled"}>${CATEGORIES.map(c => opt(c.id, c.name, c.id === t.cat)).join("")}</select>
       <label class="sdopt${t.roster.length ? "" : " na"}"><input type="checkbox" data-sdroster="${t.key}"${t.keepRoster && t.roster.length ? " checked" : ""}${t.include && t.roster.length ? "" : " disabled"}> ${t.roster.length ? `Conservar roster (${t.roster.length})` : "Sin roster registrado"}</label>
@@ -2445,7 +2591,7 @@ function viewNuevaTemporada(){
           <button type="button" class="tab" data-sdshow="pasados" aria-pressed="${d.show === "pasados"}">De temporadas pasadas<span class="n">${pasados}</span></button>
         </div>
       </div>
-      <p class="capnote sdhelp">Los equipos de la temporada ${esc(LEAGUE.season)} ya vienen incluidos. Marca los de temporadas pasadas que regresan, cambia de categoría a quien suba o baje y registra quién ya cubrió su inscripción.</p>
+      <p class="capnote sdhelp">Los equipos de la temporada ${esc(LEAGUE.season)} ya vienen incluidos. Marca los de temporadas pasadas que regresan, usa la columna <b>Categoría</b> para mover a un equipo que sube o baja (por ejemplo, de Novatos a Avanzados) y registra quién ya cubrió su inscripción.</p>
       ${CATEGORIES.map(c => {
         const list = d.teams.filter(t => t.cat === c.id && shown(t))
           .sort((x, y) => (y.include - x.include) || (order[x.from] - order[y.from]));
@@ -2456,7 +2602,10 @@ function viewNuevaTemporada(){
             <span class="meta">${plural(n, "equipo incluido", "equipos incluidos")}</span>
             <span class="sdbulk"><button type="button" class="linkbtn" data-sdall="${c.id}|1">Incluir todos</button><button type="button" class="linkbtn" data-sdall="${c.id}|0">Ninguno</button></span>
           </header>
-          ${list.length ? `<ul class="sdlist">${list.map(row).join("")}</ul>` : `<p class="capnote sdempty">Sin equipos en esta vista.</p>`}
+          ${list.length ? `<ul class="sdlist">
+            <li class="sdrow sdhead" aria-hidden="true"><span></span><span>Equipo</span><span>Categoría en la temporada ${esc(normName(d.season) || "nueva")}</span><span>Roster</span><span>Inscripción</span><span></span></li>
+            ${list.map(row).join("")}
+          </ul>` : `<p class="capnote sdempty">Sin equipos en esta vista.</p>`}
         </section>`;
       }).join("")}
       <div class="sdadd">
@@ -3070,9 +3219,10 @@ function viewSeason(id){
     loadSeasonState(stateFromArchive(s));
     viewingSeason = s.season;
   }
-  calWeek = null; openGame = null; openTeam = null; viewGameId = null; changedTeams = [];
+  const keepTeam = screen === "equipo" && openTeam && categoryOf(openTeam) ? openTeam : null;   // si también jugó esa temporada, se queda en su perfil
+  calWeek = null; openGame = null; openTeam = keepTeam; viewGameId = null; changedTeams = [];
   if (ADMIN_SCREENS.includes(screen) || screen === "juego") screen = "inicio";
-  else if (screen === "equipo") screen = "equipos";
+  else if (screen === "equipo" && !keepTeam) screen = "equipos";
   render();
   window.scrollTo({ top: 0 });
   toast(viewingSeason ? `Viendo la temporada ${LEAGUE.season} (${LEAGUE.year}) en solo lectura` : `De vuelta en la temporada ${LEAGUE.season}`);
@@ -3265,6 +3415,7 @@ function lineupCheck(team, slots){
 
 function captureChecks(){
   const errors = [], warnings = [], infos = [];
+  if (bx() === capState && capState.st && capState.st !== "F") return { errors, warnings, infos };
   for (const side of ["a", "b"]){
     const team = side === "a" ? bx().away : bx().home;
     if (!team) continue;
@@ -3548,6 +3699,9 @@ function setCaptureGame(g){
   capState.sides = { a: defaultLineup(capState.away, "a"), b: defaultLineup(capState.home, "b") };
   capState.pitch = { a: defaultPitching("a", capState), b: defaultPitching("b", capState) };
   capState.boxSide = "a";
+  capState.st = "F";             // F se jugó · FF forfit · NJ no se jugó
+  capState.ff = "b";             // quién no se presentó
+  capState.why = WHY_NJ[0];      // por qué no se jugó
 }
 setCaptureGame(CAL.find(g => g.id === "hoy") || null);
 const capTotals = () => ({
@@ -3561,11 +3715,51 @@ function capBar(){
   if (!g) return "";
   const t = capTotals();
   return `<div class="capbar" role="region" aria-label="Publicar el juego">
-    <span class="cb-game">${crest(g.a)}<b>${esc(g.a)}</b><span class="cb-score num"><span id="cb-a">${t.a}</span>–<span id="cb-h">${t.h}</span></span><b>${esc(g.b)}</b>${crest(g.b)}</span>
+    <span class="cb-game">${crest(g.a)}<b>${esc(g.a)}</b><span class="cb-score num">${capState.st === "FF" ? (capState.ff === "a" ? "0–7" : "7–0")
+      : capState.st === "NJ" ? "—" : `<span id="cb-a">${t.a}</span>–<span id="cb-h">${t.h}</span>`}</span><b>${esc(g.b)}</b>${crest(g.b)}</span>
     <span class="cb-status" id="cb-status">${capStatusHtml()}</span>
-    <span class="cb-acts"><button class="btn primary" id="save"${captureErrors().length ? " disabled" : ""}>Guardar y publicar</button></span>
+    <span class="cb-acts"><button class="btn primary" id="save"${captureErrors().length ? " disabled" : ""}>${capState.st === "FF" ? "Publicar forfit" : capState.st === "NJ" ? "Marcar como no jugado" : "Guardar y publicar"}</button></span>
   </div>`;
 }
+/* En lugar de carreras y box score: qué va a pasar con un forfit o un juego no jugado. */
+function capStatusPanel(g){
+  const ff = capState.st === "FF";
+  const winner = g[capState.ff === "a" ? "b" : "a"];
+  return `<div class="panel">
+    <div class="panel-h"><h2 class="display"><span class="stepn">2</span>${ff ? "Forfit" : "Juego no jugado"}</h2><span class="meta">${ff ? "Sin carreras por entrada ni box score" : "Queda por reprogramar"}</span></div>
+    <div class="capstatus">
+      <i class="fa-solid ${ff ? "fa-flag" : "fa-cloud-rain"}" aria-hidden="true"></i>
+      <p>${ff
+        ? `<b>${esc(g[capState.ff])} no se presentó.</b> El juego cuenta como jugado: ${esc(winner)} gana 7–0 ${g.po ? "en su serie de playoffs" : "en la tabla"}.`
+        : `<b>No se jugó: ${esc(capState.why)}.</b> No cuenta en la tabla${g.po ? " ni en la serie de playoffs" : ""} y queda en el calendario por reprogramar${g.po ? "; el juego vuelve a aparecer en Programar juegos" : ""}.`}</p>
+    </div>
+  </div>`;
+}
+
+/* Publicar un forfit o un juego no jugado: el resultado queda en el calendario, sin box score. */
+function publishStatus(game){
+  const base = CAL.find(x => x.id === game.id) || scheduled.find(x => x.id === game.id);
+  if (!base) return;
+  if (capState.st === "FF"){
+    const ff = capState.ff;
+    Object.assign(base, { st: "FF", ff, as: ff === "a" ? 0 : 7, bs: ff === "a" ? 7 : 0 });
+    changedTeams = [game.a, game.b];
+    currentCat = game.c;
+    if (game.po) poCat = game.c;
+    screen = game.po ? "playoffs" : "standing";
+    render();
+    window.scrollTo({ top: 0 });
+    return toast(`Forfit registrado: ${game[ff]} no se presentó · ${game[ff === "a" ? "b" : "a"]} gana 7–0${game.po ? seriesToast(game) : ""}`);
+  }
+  Object.assign(base, { st: "NJ", why: capState.why, as: null, bs: null });
+  if (game.po) poCat = game.c;
+  calWeek = game.w; calCat = "todas"; openGame = null;
+  screen = game.po ? "playoffs" : "calendario";
+  render();
+  window.scrollTo({ top: 0 });
+  toast(`${game.a} vs ${game.b}: no se jugó (${capState.why}) · queda por reprogramar${game.po ? " en Programar juegos" : ""}`);
+}
+
 function capStatusHtml(){
   const { errors, warnings } = captureChecks();
   if (errors.length) return `<button class="cb-issue err" data-jump="lineup-checks">${plural(errors.length, "error", "errores")} por corregir</button>`;
@@ -3613,6 +3807,14 @@ function viewCapturar(){
                 ? (capGame ? "" : `<option value="" selected disabled>Elige un juego</option>`) + pending.map(g => `<option value="${g.id}"${g.id === capState.gameId ? " selected" : ""}${g.d > TODAY ? " disabled" : ""}>${DIAS[parseD(g.d).getUTCDay()].slice(0, 3)} ${fmtDay(g.d)} · ${g.h} · ${esc(g.a)} vs ${esc(g.b)} · ${esc(catName(g.c))}${g.po ? ` · Playoffs, juego ${g.po.n}` : ""}${g.d > TODAY ? " · aún no se juega" : ""}</option>`).join("")
                 : `<option>Todos los juegos de esta semana ya tienen resultado</option>`}</select></div>
           </div>
+          ${capGame ? `<div class="form-row cap-st-row">
+            <div class="field"><label for="cap-st">¿Qué pasó?</label>
+              <select id="cap-st">${[["F", "Se jugó"], ["FF", "Forfit"], ["NJ", "No se jugó"]].map(([v, l]) => `<option value="${v}"${capState.st === v ? " selected" : ""}>${l}</option>`).join("")}</select></div>
+            ${capState.st === "FF" ? `<div class="field wide"><label for="cap-ff">¿Quién no se presentó?</label>
+              <select id="cap-ff">${["a", "b"].map(s => `<option value="${s}"${capState.ff === s ? " selected" : ""}>${esc(capGame[s])}</option>`).join("")}</select></div>` : ""}
+            ${capState.st === "NJ" ? `<div class="field wide"><label for="cap-why">Por qué no se jugó</label>
+              <select id="cap-why">${WHY_NJ.map(w => `<option value="${esc(w)}"${capState.why === w ? " selected" : ""}>${esc(w)}</option>`).join("")}</select></div>` : ""}
+          </div>` : ""}
           ${capGame ? `<dl class="gamefacts">
             <div><dt>Categoría</dt><dd>${esc(catName(capGame.c))}</dd></div>
             <div><dt>Día</dt><dd>${DIAS[parseD(capGame.d).getUTCDay()]} ${fmtDay(capGame.d)}</dd></div>
@@ -3622,6 +3824,7 @@ function viewCapturar(){
           </dl>` : `<p class="capnote">${published ? "Juego publicado. Elige otro juego programado para capturar." : "Elige un juego programado de la semana para capturar su resultado."}</p>`}
         </div>
 
+        ${capGame && capState.st !== "F" ? capStatusPanel(capGame) : `
         <div class="panel">
           <div class="panel-h"><h2 class="display"><span class="stepn">2</span>Carreras por entrada</h2><span class="meta">El total se suma solo</span></div>
           <div class="tablewrap" style="padding:14px 16px">
@@ -3654,7 +3857,7 @@ function viewCapturar(){
           <div id="lineup">${lineupTable(capState.boxSide)}</div>
           <div id="pitching">${pitchTable(capState.boxSide)}</div>
           <ul class="checks lineupchecks" id="lineup-checks" aria-live="polite">${lineupChecksHtml()}</ul>
-        </div>
+        </div>`}
       </div>
     </div>
 
@@ -3733,6 +3936,7 @@ function publish(){
   const game = captureGame();
   if (!game){ toast("Elige un juego programado para capturar"); return; }
   if (captureErrors().length){ toast("Revisa el orden al bat y el pitcheo antes de publicar"); return; }
+  if (capState.st === "FF" || capState.st === "NJ") return publishStatus(game);
   const boxResult = finalizeBox(capState);
   captured = { id: game.id, cat: game.c, a: game.a, b: game.b, as: t.a, bs: t.h, h: game.h,
                innings: { a: capState.a.slice(), h: capState.h.slice() },
@@ -5112,6 +5316,9 @@ document.addEventListener("change", e => {
     render();
     return toast(pay.checked ? `${team}: inscripción cubierta` : `${team}: inscripción marcada como pendiente`);
   }
+  if (e.target.id === "cap-st"){ capState.st = e.target.value; return render(); }
+  if (e.target.id === "cap-ff"){ capState.ff = e.target.value; return render(); }
+  if (e.target.id === "cap-why"){ capState.why = e.target.value; return render(); }
   if (e.target.id === "sch-po"){
     const p = pendingPlayoffGames()[+e.target.value];
     if (p) schedForm = playoffSchedForm(p);
