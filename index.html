@@ -352,16 +352,17 @@ const RIVAL_LEADERS = {
 /* Pitcheo de ejemplo de la temporada 19 (Novatos): entradas lanzadas en outs, carreras limpias,
    ponches y decisiones. Lo que se capture en los box scores se suma encima. */
 const ERA_LEADERS = [
-  { n:"Ruben Perez",     t:"Caimanes de Villas", outs:49, CL:5, K:14, G:1, P:1, S:0 },
-  { n:"L. Peraza",       t:"Tamagochis",         outs:45, CL:5, K:11, G:0, P:2, S:0 },
-  { n:"Ricardo Santoyo", t:"Caimanes de Villas", outs:42, CL:6, K:9,  G:0, P:2, S:1 },
-  { n:"H. Camacho",      t:"Bandidos",           outs:40, CL:6, K:16, G:0, P:2, S:0 },
-  { n:"S. Iribe",        t:"Soja Sushi",         outs:39, CL:6, K:8,  G:1, P:1, S:0 },
-  { n:"M. Sauceda",      t:"Sox",                outs:36, CL:7, K:13, G:3, P:0, S:0 },
-  { n:"J. Leyva",        t:"Primos",             outs:33, CL:8, K:10, G:2, P:1, S:1 },
+  { n:"Ruben Perez",     t:"Caimanes de Villas", JJ:4, outs:49, H:14, C:7,  CL:5, BB:6, K:14, G:1, P:1, S:0 },
+  { n:"L. Peraza",       t:"Tamagochis",         JJ:3, outs:45, H:15, C:8,  CL:5, BB:7, K:11, G:0, P:2, S:0 },
+  { n:"Ricardo Santoyo", t:"Caimanes de Villas", JJ:4, outs:42, H:13, C:8,  CL:6, BB:5, K:9,  G:0, P:2, S:1 },
+  { n:"H. Camacho",      t:"Bandidos",           JJ:3, outs:40, H:12, C:9,  CL:6, BB:9, K:16, G:0, P:2, S:0 },
+  { n:"S. Iribe",        t:"Soja Sushi",         JJ:3, outs:39, H:14, C:8,  CL:6, BB:4, K:8,  G:1, P:1, S:0 },
+  { n:"M. Sauceda",      t:"Sox",                JJ:3, outs:36, H:11, C:9,  CL:7, BB:6, K:13, G:3, P:0, S:0 },
+  { n:"J. Leyva",        t:"Primos",             JJ:4, outs:33, H:12, C:10, CL:8, BB:5, K:10, G:2, P:1, S:1 },
 ];
 
 /* Totales por jugador de los box scores capturados de una categoría: bateo y pitcheo. */
+const PIT_KEYS = ["outs", "H", "C", "CL", "BB", "K", "G", "P", "S"];
 function boxTotals(catId){
   const bat = new Map(), pit = new Map();
   for (const g of calGames()){
@@ -374,46 +375,44 @@ function boxTotals(catId){
         const name = normName(e.player);
         if (!name) continue;
         const k = name + "|" + team;
-        const r = bat.get(k) || { n: name, t: team, games: new Set(), VB: 0, H: 0, HR: 0, CP: 0 };
+        const r = bat.get(k) || { n: name, t: team, games: new Set(), ...Object.fromEntries(STAT_KEYS.map(f => [f, 0])) };
         r.games.add(g.id);
-        for (const f of ["VB", "H", "HR", "CP"]) r[f] += +e[f] || 0;
+        for (const f of STAT_KEYS) r[f] += +e[f] || 0;
         bat.set(k, r);
       }
       for (const p of (box.pitch && box.pitch[side]) || []){
         const name = normName(p.player);
         if (!name) continue;
         const k = name + "|" + team;
-        const r = pit.get(k) || { n: name, t: team, outs: 0, CL: 0, K: 0, G: 0, P: 0, S: 0 };
+        const r = pit.get(k) || { n: name, t: team, games: new Set(), ...Object.fromEntries(PIT_KEYS.map(f => [f, 0])) };
+        r.games.add(g.id);
         r.outs += outsOf(p.EL) || 0;
-        r.CL += +p.CL || 0;
-        r.K += +p.K || 0;
+        for (const f of ["H", "C", "CL", "BB", "K"]) r[f] += +p[f] || 0;
         if (p.dec === "G" || p.dec === "P" || p.dec === "S") r[p.dec]++;
         pit.set(k, r);
       }
     }
   }
-  return { bat: [...bat.values()].map(({ games, ...r }) => ({ ...r, JJ: games.size })), pit: [...pit.values()] };
+  const list = m => [...m.values()].map(({ games, ...r }) => ({ ...r, JJ: games.size }));
+  return { bat: list(bat), pit: list(pit) };
 }
 
 /* Jugadores de una categoría con sus totales: los de ejemplo (demo, temporada 19, Novatos) más los capturados. */
 function leaderPools(catId){
   const sample = appMode === "demo" && !seasonsCreated && !viewingSeason && catId === mainCat().id;
   const bat = new Map(), pit = new Map();
+  const add = (map, r, keys) => {
+    const k = r.n + "|" + r.t, cur = map.get(k);
+    if (cur) for (const f of ["JJ", ...keys]) cur[f] = (cur[f] || 0) + (r[f] || 0);
+    else map.set(k, { ...r });
+  };
   if (sample){
-    for (const p of CAIMANES_ROSTER) bat.set(p.name + "|" + STATS_TEAM, { n: p.name, t: STATS_TEAM, JJ: p.JJ, VB: p.VB, H: p.H, HR: p.HR, CP: p.CP });
+    for (const { name, ...st } of CAIMANES_ROSTER) bat.set(name + "|" + STATS_TEAM, { n: name, t: STATS_TEAM, ...st });
     for (const p of ERA_LEADERS) pit.set(p.n + "|" + p.t, { ...p });
   }
   const box = boxTotals(catId);
-  for (const r of box.bat){
-    const k = r.n + "|" + r.t, cur = bat.get(k);
-    if (cur) for (const f of ["JJ", "VB", "H", "HR", "CP"]) cur[f] += r[f];
-    else bat.set(k, { ...r });
-  }
-  for (const r of box.pit){
-    const k = r.n + "|" + r.t, cur = pit.get(k);
-    if (cur) for (const f of ["outs", "CL", "K", "G", "P", "S"]) cur[f] = (cur[f] || 0) + r[f];
-    else pit.set(k, { ...r });
-  }
+  box.bat.forEach(r => add(bat, r, STAT_KEYS));
+  box.pit.forEach(r => add(pit, r, PIT_KEYS));
   return { sample, bat: [...bat.values()], pit: [...pit.values()], rivals: sample ? RIVAL_LEADERS : { avg: [], CP: [], HR: [] } };
 }
 
@@ -604,8 +603,8 @@ function render(){
   const topbar = document.querySelector(".topbar");
   if (topbar) topbar.classList.remove("open");
   if (route !== "app") document.title = "STRIKEOUT";
-  if (route === "inicio"){ view.innerHTML = viewLanding(); return; }
-  if (route === "master"){ view.innerHTML = viewMaster(); return; }
+  if (route === "inicio"){ view.innerHTML = viewLanding(); return pushNav(); }
+  if (route === "master"){ view.innerHTML = viewMaster(); return pushNav(); }
   renderChrome();
   renderNav();
   if (isVisitor() && ADMIN_SCREENS.includes(screen)) screen = "inicio";
@@ -618,6 +617,7 @@ function render(){
   })[screen]());
   if (!locked && screen === "capturar") recalcCapture();
   if (screen === "calendario") centerWeek();
+  pushNav();
 }
 
 /* ---------------- pantallas ---------------- */
@@ -766,7 +766,6 @@ function viewStanding(){
       <div>
         <p class="eyebrow">${LEAGUE.name} · Temporada ${LEAGUE.season} · ${LEAGUE.year}</p>
         <h1>Tabla de posiciones</h1>
-        <p class="sub">Se calcula sola a partir de los juegos capturados. Nadie la escribe.</p>
       </div>
       <div class="tabs">
         ${CATEGORIES.map(c => `<button class="tab" data-cat="${c.id}" aria-pressed="${currentCat === c.id}">${c.name}</button>`).join("")}
@@ -820,8 +819,7 @@ function viewStanding(){
 
       <div class="note">
         <span class="tag">Desempate</span>
-        <span><b>Más ganados → menos perdidos → mejor diferencia de carreras → más carreras a favor.</b>
-        El mismo criterio, siempre, aplicado por el sistema. Un forfit cuenta como juego jugado, 7–0.</span>
+        <span><b>Más ganados → menos perdidos → mejor diferencia de carreras → más carreras a favor.</b> Un forfit cuenta como juego jugado, 7–0.</span>
       </div>`}
   </div>`;
 }
@@ -841,7 +839,6 @@ function viewEquipos(){
       <div>
         <p class="eyebrow">${LEAGUE.name} · Temporada ${LEAGUE.season} · ${LEAGUE.year}</p>
         <h1>Equipos</h1>
-        <p class="sub">${total} equipos en ${CATEGORIES.filter(c => c.active).length} categorías. Cada uno con su roster, su calendario y sus estadísticas.</p>
       </div>
       <div class="tabs">
         ${CATEGORIES.map(c => `<button class="tab" data-teamcat="${c.id}" aria-pressed="${c.id === cat.id}">${esc(c.name)}<span class="n">${c.teams}</span></button>`).join("")}
@@ -866,38 +863,64 @@ function viewEquipos(){
   </div>`;
 }
 
-/* ---------------- estadísticas de bateo ordenables ---------------- */
-let statSort = { key: "AVG", dir: -1 };  // columna y sentido de la tabla de bateo
+/* ---------------- estadísticas del equipo: bateo y pitcheo ---------------- */
+let statSort = { bat: { key: "AVG", dir: -1 }, pit: { key: "EFE", dir: 1 } };  // columna y sentido de cada tabla
 
-function batStatsTable(team, teamJJ){
-  const val = (p, k) => k === "AVG" ? (p.VB ? p.H / p.VB : 0) : k === "name" ? p.name : p[k];
-  const rows = [...CAIMANES_ROSTER].sort((a, b) => {
-    const x = val(a, statSort.key), y = val(b, statSort.key);
-    const c = typeof x === "string" ? x.localeCompare(y) : x - y;
-    return c * statSort.dir || a.name.localeCompare(b.name);
-  });
-  const cols = [["name", "Jugador"], ...BAT_COLS, ["AVG", "AVG"]];
-  const th = ([k, label]) => {
-    const on = statSort.key === k;
-    return `<th class="${k === "name" ? "l" : ""}"${on ? ` aria-sort="${statSort.dir < 0 ? "descending" : "ascending"}"` : ""}>
-      <button type="button" class="sortbtn" data-statsort="${k}" title="Ordenar por ${esc(label)}">${esc(label)}${on ? `<i class="fa-solid fa-caret-${statSort.dir < 0 ? "down" : "up"}" aria-hidden="true"></i>` : ""}</button></th>`;
+function statsDef(kind){
+  return kind === "bat" ? {
+    title: "Estadísticas de bateo", who: "Jugador", one: "bateador", many: "bateadores",
+    cols: [["JJ", "JJ"], ["VB", "VB"], ["H", "H"], ["D", "2B"], ["T", "3B"], ["HR", "HR"], ["CA", "CA"], ["CP", "CP"], ["BB", "BB"], ["K", "K"], ["BR", "BR"], ["AVG", "AVG"]],
+    calc: { AVG: p => p.VB ? p.H / p.VB : 0 },
+    fmt: { AVG: v => fmtPct(v) },
+    glossary: [["JJ", "Juegos jugados"], ["VB", "Veces al bat"], ["H", "Hits"], ["2B", "Dobles"], ["3B", "Triples"], ["HR", "Jonrones"],
+      ["CA", "Carreras anotadas"], ["CP", "Carreras producidas"], ["BB", "Bases por bolas"], ["K", "Ponches"], ["BR", "Bases robadas"], ["AVG", "Promedio de bateo: hits entre veces al bat"]],
+  } : {
+    title: "Estadísticas de pitcheo", who: "Pitcher", one: "pitcher", many: "pitchers",
+    cols: [["JJ", "JL"], ["outs", "EL"], ["H", "H"], ["C", "C"], ["CL", "CL"], ["BB", "BB"], ["K", "K"], ["G", "G"], ["P", "P"], ["S", "S"], ["EFE", "EFE"]],
+    calc: { EFE: p => p.outs ? p.CL * INNINGS * 3 / p.outs : Infinity },
+    fmt: { outs: v => fmtEL(v), EFE: v => Number.isFinite(v) ? v.toFixed(2) : "—" },
+    glossary: [["JL", "Juegos lanzados"], ["EL", "Entradas lanzadas (6.1 = 6 entradas y 1 out)"], ["H", "Hits permitidos"], ["C", "Carreras permitidas"],
+      ["CL", "Carreras limpias"], ["BB", "Bases por bolas"], ["K", "Ponches"], ["G", "Juegos ganados"], ["P", "Juegos perdidos"], ["S", "Juegos salvados"],
+      ["EFE", `Efectividad: carreras limpias por cada ${INNINGS} entradas`]],
   };
-  const cell = (k, content, cls = "num") => `<td class="${cls}${statSort.key === k ? " sorted" : ""}">${content}</td>`;
-  const sum = k => CAIMANES_ROSTER.reduce((a, p) => a + p[k], 0);
-  return `<p class="sorthint">Toca una columna para ordenar por esa estadística; otra vez para invertir el orden.</p>
+}
+
+function statsPanel(kind, rows, teamJJ){
+  const def = statsDef(kind), sort = statSort[kind];
+  const value = (p, k) => k === "name" ? p.n : def.calc[k] ? def.calc[k](p) : (p[k] ?? 0);
+  const show = (k, v) => def.fmt[k] ? def.fmt[k](v) : v;
+  const sorted = rows.slice().sort((a, b) => {
+    const x = value(a, sort.key), y = value(b, sort.key);
+    const c = typeof x === "string" ? x.localeCompare(y) : (x === y ? 0 : x > y ? 1 : -1);
+    return c * sort.dir || a.n.localeCompare(b.n);
+  });
+  const th = ([k, label]) => {
+    const on = sort.key === k;
+    return `<th class="${k === "name" ? "l" : ""}"${on ? ` aria-sort="${sort.dir < 0 ? "descending" : "ascending"}"` : ""}>
+      <button type="button" class="sortbtn" data-statsort="${kind}|${k}" title="Ordenar por ${esc(label)}">${esc(label)}${on ? `<i class="fa-solid fa-caret-${sort.dir < 0 ? "down" : "up"}" aria-hidden="true"></i>` : ""}</button></th>`;
+  };
+  const td = (k, content, cls = "num") => `<td class="${cls}${sort.key === k ? " sorted" : ""}">${content}</td>`;
+  const sum = k => rows.reduce((a, p) => a + (+p[k] || 0), 0);
+  const totals = Object.fromEntries(def.cols.map(([k]) => [k, sum(k)]));
+  totals.JJ = teamJJ;
+  return `<section class="panel">
+    <div class="panel-h"><h2 class="display">${def.title}</h2><span class="meta">${plural(rows.length, def.one, def.many)}</span></div>
     <div class="tablewrap"><table class="box stats">
-      <thead><tr>${cols.map(th).join("")}</tr></thead>
-      <tbody>${rows.map(p => `<tr>
-        ${cell("name", `${esc(p.name)}${p.name === MANAGERS[team] ? `<span class="mgrtag">Manager</span>` : ""}`, "l")}
-        ${BAT_COLS.map(c => cell(c[0], p[c[0]])).join("")}
-        ${cell("AVG", fmtPct(p.VB ? p.H / p.VB : 0), "avg")}
+      <thead><tr>${[["name", def.who], ...def.cols].map(th).join("")}</tr></thead>
+      <tbody>${sorted.map(p => `<tr>
+        ${td("name", `${esc(p.n)}${p.n === MANAGERS[p.t] ? `<span class="mgrtag">Manager</span>` : ""}`, "l")}
+        ${def.cols.map(([k]) => td(k, show(k, value(p, k)), def.calc[k] ? "avg" : "num")).join("")}
       </tr>`).join("")}</tbody>
       <tfoot><tr>
         <td class="l">Totales del equipo</td>
-        ${BAT_COLS.map(c => `<td class="num">${c[0] === "JJ" ? teamJJ : sum(c[0])}</td>`).join("")}
-        <td class="num">${fmtPct(sum("H") / sum("VB"))}</td>
+        ${def.cols.map(([k]) => `<td class="num">${show(k, def.calc[k] ? def.calc[k](totals) : totals[k])}</td>`).join("")}
       </tr></tfoot>
-    </table></div>`;
+    </table></div>
+  </section>
+  <aside class="glossary-card" aria-label="Glosario de ${esc(def.title.toLowerCase())}">
+    <h3 class="display">Glosario · ${kind === "bat" ? "bateo" : "pitcheo"}</h3>
+    <dl class="glossary">${def.glossary.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+  </aside>`;
 }
 
 /* ---------------- perfil: temporadas anteriores ---------------- */
@@ -1007,8 +1030,9 @@ function viewEquipo(){
   const logo = TEAM_LOGOS[team]
     ? `<span class="tp-logo"><img src="${TEAM_LOGOS[team]}" alt="Logo de ${esc(team)}"></span>`
     : `<span class="tp-logo crestwrap">${crest(team)}</span>`;
-  const rosterHtml = isCaimanes ? batStatsTable(team, t.JJ)
-    : roster ? rosterList(team) : `
+  const pools = leaderPools(cat);
+  const batRows = pools.bat.filter(p => p.t === team), pitRows = pools.pit.filter(p => p.t === team);
+  const rosterHtml = roster ? rosterList(team) : `
       <div class="empty">
         <strong>Roster pendiente de captura</strong>
         <span>${esc(managerOf(team))}, manager de ${esc(team)}, todavía no registra su plantilla.<br>Sin roster, el equipo aparece en la tabla pero no en los líderes individuales.</span>
@@ -1047,10 +1071,11 @@ function viewEquipo(){
 
     ${teamPastPanel(team)}
 
-    <section class="panel">
-      <div class="panel-h"><h2 class="display">${isCaimanes ? "Estadísticas de bateo" : "Roster"}</h2><span class="meta">${roster ? plural(roster.length, "jugador", "jugadores") : "Sin roster"}</span></div>
+    ${batRows.length ? statsPanel("bat", batRows, t.JJ) : `<section class="panel">
+      <div class="panel-h"><h2 class="display">Roster</h2><span class="meta">${roster ? plural(roster.length, "jugador", "jugadores") : "Sin roster"}</span></div>
       ${rosterHtml}
-    </section>
+    </section>`}
+    ${pitRows.length ? statsPanel("pit", pitRows, t.JJ) : ""}
 
     ${teamGamesPanel(team)}
   </div>`;
@@ -1360,7 +1385,6 @@ function viewCalendario(){
       <div>
         <p class="eyebrow">${LEAGUE.name} · Temporada ${LEAGUE.season} · ${LEAGUE.year}</p>
         <h1>Calendario</h1>
-        <p class="sub">Semana por semana: lo que se programó y cómo terminó cada juego.</p>
       </div>
       <div class="tabs">
         <button class="tab" data-calcat="todas" aria-pressed="${!cat}">Todas</button>
@@ -1476,7 +1500,6 @@ function viewLideres(){
       <div>
         <p class="eyebrow">${LEAGUE.name} · Temporada ${LEAGUE.season} · ${LEAGUE.year}</p>
         <h1>Líderes</h1>
-        <p class="sub">Se calculan de los box scores capturados, por categoría. Promedio: mínimo 2.1 turnos al bat por juego jugado. Efectividad: mínimo 3 entradas lanzadas, a ${INNINGS} entradas.</p>
       </div>
       <div class="tabs">
         ${CATEGORIES.map(c => `<button class="tab" data-leadcat="${c.id}" aria-pressed="${c.id === cat.id}">${esc(c.name)}</button>`).join("")}
@@ -1535,7 +1558,6 @@ function duesChip(team){
 function rosterList(team){
   const ps = ROSTERS[team];
   return `<div class="rosterlist">
-    <p class="rosternote">${plural(ps.length, "jugador inscrito", "jugadores inscritos")} · todavía no se capturan sus boxscores, así que aún no hay estadísticas.</p>
     <ul>${ps.map(n => `<li>${esc(n)}${n === MANAGERS[team] ? `<span class="mgrtag">Manager</span>` : ""}</li>`).join("")}</ul>
   </div>`;
 }
@@ -1565,7 +1587,6 @@ function viewInscripciones(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Inscripciones</h1>
-        <p class="sub">La inscripción se paga por equipo. Marca los equipos que ya la cubrieron; con eso el sistema sabe a quién conviene no programar.</p>
       </div>
       ${published ? `<button class="btn ghost" id="reset">↺ Reiniciar demo</button>` : ""}
     </div>
@@ -1609,10 +1630,6 @@ function viewInscripciones(){
       <span>Cuando se inscriban equipos, su pago se marca aquí.</span>
     </div></div>`}
 
-    <div class="note">
-      <span class="tag">Cómo se cuenta</span>
-      <span>La inscripción vence al arrancar la temporada (semana ${DUES_FROM_WEEK}) y las semanas de adeudo corren desde ahí. Al marcar un equipo como cubierto queda registrada la semana en que pagó.</span>
-    </div>
   </div>`;
 }
 
@@ -1836,7 +1853,6 @@ function viewCorregir(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Corregir resultado</h1>
-        <p class="sub">Para cualquier error en un juego ya capturado, de esta semana o de semanas pasadas: el resultado o su box score. La tabla se recalcula y el cambio queda registrado.</p>
       </div>
       <div class="headacts">${capModeTabs()}${published ? `<button class="btn ghost" id="reset">↺ Reiniciar demo</button>` : ""}</div>
     </div>
@@ -1902,14 +1918,6 @@ function viewCorregir(){
 
     </div>
 
-    <details class="howto">
-      <summary>¿Qué pasa al corregir?</summary>
-      <ul>
-        <li>La <b>tabla de la categoría</b> se recalcula y antes de guardar se ve cómo cambian el récord y el lugar de los dos equipos.</li>
-        <li>El <b>box score</b> (bateo, cambios y pitcheo) también se corrige, o se captura si el juego solo tenía marcador.</li>
-        <li>El <b>resultado anterior queda en el historial</b>, con motivo y fecha, y se puede revertir con un clic.</li>
-      </ul>
-    </details>
     ${g ? fixBar(g) : ""}
   </div>`;
 }
@@ -2240,7 +2248,6 @@ function viewProgramar(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Programar juegos</h1>
-        <p class="sub">Elige categoría, semana, equipos, día y hora. El sistema revisa que el campo esté libre y que ningún equipo juegue dos veces el mismo día.</p>
       </div>
       <label class="switch"><input type="checkbox" id="sugg-toggle" ${showSugg ? "checked" : ""}><span>Mostrar sugerencias</span></label>
     </div>
@@ -2342,7 +2349,6 @@ function viewTemporada(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Temporada</h1>
-        <p class="sub">Formato de la temporada ${esc(LEAGUE.season)}: cuántos juegos hace cada equipo en temporada regular y cuántos equipos de cada categoría pasan a playoffs.</p>
       </div>
     </div>
 
@@ -2365,11 +2371,6 @@ function viewTemporada(){
     <div class="seasongrid">${CATEGORIES.map(seasonCard).join("")}</div>
 
     ${seasonArchivePanel()}
-
-    <div class="note">
-      <span class="tag">En la tabla</span>
-      <span>Cada categoría muestra su zona de playoffs. Un equipo aparece como <b>Clasificado</b> cuando ya no lo pueden alcanzar en juegos ganados, y como <b>Eliminado</b> cuando ya no le alcanzan los juegos que le quedan.</span>
-    </div>
   </div>`;
 }
 
@@ -2561,7 +2562,6 @@ function viewNuevaTemporada(){
       <div>
         <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
         <h1>Nueva temporada</h1>
-        <p class="sub">Cierra la temporada ${esc(LEAGUE.season)} y arranca la siguiente: elige qué equipos siguen, recupera equipos de temporadas pasadas y registra sus inscripciones. La temporada ${esc(LEAGUE.season)} queda archivada con su tabla final.</p>
       </div>
       <button type="button" class="btn ghost" data-sdcancel>Cancelar</button>
     </div>
@@ -2591,7 +2591,6 @@ function viewNuevaTemporada(){
           <button type="button" class="tab" data-sdshow="pasados" aria-pressed="${d.show === "pasados"}">De temporadas pasadas<span class="n">${pasados}</span></button>
         </div>
       </div>
-      <p class="capnote sdhelp">Los equipos de la temporada ${esc(LEAGUE.season)} ya vienen incluidos. Marca los de temporadas pasadas que regresan, usa la columna <b>Categoría</b> para mover a un equipo que sube o baja (por ejemplo, de Novatos a Avanzados) y registra quién ya cubrió su inscripción.</p>
       ${CATEGORIES.map(c => {
         const list = d.teams.filter(t => t.cat === c.id && shown(t))
           .sort((x, y) => (y.include - x.include) || (order[x.from] - order[y.from]));
@@ -3004,7 +3003,6 @@ function viewProgramarPlayoffs(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Programar juegos</h1>
-        <p class="sub">La temporada regular está cerrada: aquí solo se programan los juegos de playoffs que faltan. El juego 3 de una serie aparece cuando va 1–1.</p>
       </div>
       <button type="button" class="btn ghost" data-go="playoffs"><i class="fa-solid fa-sitemap" aria-hidden="true"></i> Ver la llave</button>
     </div>
@@ -3031,7 +3029,7 @@ function regularSeasonControl(){
   if (!PLAYOFFS.closed){
     const left = regularGamesLeft();
     return `<div class="rulebody po-rule">
-      <span><b>Temporada regular abierta.</b> ${left ? `Faltan ${plural(left, "juego", "juegos")} para completar los ${SEASON.games} de cada equipo.` : "Ya se jugaron todos los juegos."} La llave de playoffs se proyecta con el standing de hoy.</span>
+      <span><b>Temporada regular abierta.</b> ${left ? `Faltan ${plural(left, "juego", "juegos")} para completar los ${SEASON.games} de cada equipo.` : "Ya se jugaron todos los juegos."}</span>
       <button type="button" class="btn" data-poclose><i class="fa-solid fa-lock" aria-hidden="true"></i> Cerrar temporada regular</button>
     </div>`;
   }
@@ -3051,7 +3049,6 @@ function viewPlayoffs(){
       <div>
         <p class="eyebrow">${esc(leagueFull())} · Temporada ${esc(LEAGUE.season)}</p>
         <h1>Playoffs</h1>
-        <p class="sub">Series al mejor de 3: avanza quien gane 2 juegos. El mejor clasificado enfrenta al último que clasifica, el segundo al penúltimo, y así en cada ronda.</p>
       </div>
       ${cats.length > 1 ? `<div class="tabs">${cats.map(c => `<button type="button" class="tab" data-pocat="${c.id}" aria-pressed="${false}">${esc(c.name)}</button>`).join("")}</div>` : ""}
     </div>`;
@@ -3114,10 +3111,10 @@ function viewPlayoffs(){
   const contenders = br.closed ? [] : table.slice(P, P + 3);
   const note = br.closed
     ? `<div class="note po-note"><span class="tag">Publicados</span>
-        <span>La temporada regular cerró el ${fmtDay(PLAYOFFS.closedAt)} y estos son los sembrados finales. ${canEdit ? "Programa cada juego en Programar juegos y captúralo en Capturar resultado, con su box score: la serie y la siguiente ronda se arman solas." : "Los resultados aparecen en cuanto se capturan."}</span>
+        <span>Temporada regular cerrada el ${fmtDay(PLAYOFFS.closedAt)}.</span>
         ${canEdit && pendingPlayoffGames().length ? `<button type="button" class="btn primary" data-go="programar"><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Programar ${plural(pendingPlayoffGames().length, "juego pendiente", "juegos pendientes")}</button>` : ""}</div>`
     : `<div class="note po-note"><span class="tag">En vivo</span>
-        <span>La temporada regular sigue: la llave se acomoda sola con cada resultado. Hoy clasifican los <b>${P}</b> primeros de ${table.length} en ${esc(cat.name)}.</span>
+        <span>Proyección con el standing de hoy: clasifican los <b>${P}</b> primeros de ${table.length}.</span>
         ${canEdit ? `<button type="button" class="btn primary" data-poclose><i class="fa-solid fa-lock" aria-hidden="true"></i> Cerrar temporada regular y publicar</button>` : ""}</div>`;
 
   return `<div class="screen">
@@ -3205,7 +3202,7 @@ function loadSeasonState(st){
   CATEGORIES.forEach(c => { c.teams = TEAMS[c.id].length; c.active = c.teams > 0; });
 }
 
-function viewSeason(id){
+function viewSeason(id, silent){
   const live = liveState ? liveState.season : LEAGUE.season;
   if (!id || id === "actual" || id === live){
     if (!viewingSeason) return;
@@ -3225,7 +3222,7 @@ function viewSeason(id){
   else if (screen === "equipo" && !keepTeam) screen = "equipos";
   render();
   window.scrollTo({ top: 0 });
-  toast(viewingSeason ? `Viendo la temporada ${LEAGUE.season} (${LEAGUE.year}) en solo lectura` : `De vuelta en la temporada ${LEAGUE.season}`);
+  if (!silent) toast(viewingSeason ? `Viendo la temporada ${LEAGUE.season} (${LEAGUE.year}) en solo lectura` : `De vuelta en la temporada ${LEAGUE.season}`);
 }
 
 /* Selector bajo el nombre de la liga y franja de "solo lectura". */
@@ -3276,7 +3273,6 @@ function seasonArchivePanel(){
         }).join("")}</span>
         <button type="button" class="btn" data-viewseason="${esc(s.season)}"><i class="fa-solid fa-eye" aria-hidden="true"></i> Ver temporada</button>
       </li>`).join("")}</ul>
-      <p class="capnote archnote">Campeón de playoffs de cada categoría, o primer lugar de la temporada regular si no hubo playoffs. Sus equipos se pueden volver a inscribir al crear una temporada.</p>
     </div>`;
 }
 
@@ -3787,7 +3783,6 @@ function viewCapturar(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Capturar resultado</h1>
-        <p class="sub">Una sola captura por juego. La tabla, los líderes, el récord de cada equipo y el sitio de cada club se actualizan solos.</p>
       </div>
       <div class="headacts">${capModeTabs()}${published ? `<button class="btn ghost" id="reset">↺ Reiniciar demo</button>` : ""}</div>
     </div>
@@ -3861,15 +3856,6 @@ function viewCapturar(){
       </div>
     </div>
 
-    <details class="howto">
-      <summary>¿Qué pasa al guardar?</summary>
-      <ul>
-        <li>La <b>tabla de posiciones</b> se recalcula con el criterio de desempate de la liga.</li>
-        <li>El <b>récord y la diferencia de carreras</b> de los dos equipos se actualizan.</li>
-        <li>Las <b>estadísticas de cada jugador</b> quedan en su ficha, y el juego aparece con su hoja de anotación en el calendario.</li>
-        <li>Si algo quedó mal, se arregla después en <b>Corregir resultado</b>.</li>
-      </ul>
-    </details>
     ${capBar()}
   </div>`;
 }
@@ -4067,14 +4053,92 @@ function applyRoute(h){
   render();
   window.scrollTo({ top: 0 });
 }
-function openRoute(h){
-  try { history.replaceState(null, "", "#" + h); } catch (e) { /* sin URL propia: la ruta sigue en memoria */ }
-  applyRoute(h);
+function openRoute(h){ applyRoute(h); }
+
+/* ---------------- historial del navegador ---------------- */
+/* Cada pantalla tiene su dirección (#demo/standing, #demo/equipo/Sox, #demo/temporada-18/playoffs)
+   y queda en el historial: atrás y adelante del navegador regresan a la sección anterior. */
+const VIEW_IDS = ["inicio", "standing", "equipos", "calendario", "lideres", "juego", "equipo", "playoffs", "admin", "capturar",
+  "inscripciones", "programar", "admequipos", "temporada", "nuevatemporada", "personalizar"];
+let navRestoring = false;        // mientras se restaura una entrada del historial no se crean entradas nuevas
+let lastHash = "";
+
+function navHash(){
+  if (route !== "app") return "#" + route;
+  const parts = [appMode];
+  if (viewingSeason) parts.push("temporada-" + viewingSeason);
+  const sc = screen === "capturar" && capMode === "corregir" ? "corregir" : screen;
+  if (sc !== "inicio" || parts.length > 1) parts.push(sc);
+  if (screen === "equipo" && openTeam) parts.push(encodeURIComponent(openTeam));
+  if (screen === "juego" && viewGameId) parts.push(encodeURIComponent(viewGameId));
+  return "#" + parts.join("/");
 }
+
+function navState(){
+  return { route, appMode, screen, capMode, openTeam, viewGameId, season: viewingSeason || null,
+    calWeek, calCat, poCat, currentCat, teamCat, leadCat };
+}
+
+function stateFromHash(hash){
+  const parts = String(hash || "").replace(/^#/, "").split("/").filter(Boolean)
+    .map(p => { try { return decodeURIComponent(p); } catch (e) { return p; } });
+  const r = parts.shift();
+  if (r !== "demo" && r !== "liga") return { route: r === "master" ? "master" : "inicio" };
+  const st = { route: "app", appMode: r, season: null, screen: "inicio", capMode: "nuevo" };
+  if (parts[0] && parts[0].startsWith("temporada-")) st.season = parts.shift().slice("temporada-".length);
+  const sc = parts.shift();
+  if (sc === "corregir"){ st.screen = "capturar"; st.capMode = "corregir"; }
+  else if (VIEW_IDS.includes(sc)) st.screen = sc;
+  if (st.screen === "equipo") st.openTeam = parts[0] || null;
+  if (st.screen === "juego") st.viewGameId = parts[0] || null;
+  return st;
+}
+
+/* Después de cada render: una entrada nueva si cambió la sección; si no, se actualiza la actual. */
+function pushNav(){
+  if (navRestoring || !booted) return;
+  const hash = navHash();
+  try {
+    if (hash === lastHash) history.replaceState(navState(), "", hash);
+    else history.pushState(navState(), "", hash);
+  } catch (e) { /* sin historial propio (vista incrustada): la navegación sigue en memoria */ }
+  lastHash = hash;
+}
+
+function restoreNav(st){
+  if (!st) return;
+  navRestoring = true;
+  try {
+    if (st.route !== "app"){
+      applyRoute(st.route);
+    } else {
+      if (route !== "app" || appMode !== st.appMode) applyRoute(st.appMode);
+      if ((st.season || null) !== (viewingSeason || null)) viewSeason(st.season || "actual", true);
+      screen = VIEW_IDS.includes(st.screen) ? st.screen : "inicio";
+      capMode = st.capMode || "nuevo";
+      if (screen === "capturar" && capMode === "corregir" && !fixForm) fixForm = defaultFixForm();
+      if ("openTeam" in st) openTeam = st.openTeam;
+      if ("viewGameId" in st) viewGameId = st.viewGameId;
+      if ("calWeek" in st) calWeek = st.calWeek;
+      if (st.calCat) calCat = st.calCat;
+      if ("poCat" in st) poCat = st.poCat;
+      if (st.currentCat) currentCat = st.currentCat;
+      if (st.teamCat) teamCat = st.teamCat;
+      if (st.leadCat) leadCat = st.leadCat;
+      render();
+      window.scrollTo({ top: 0 });
+    }
+  } finally {
+    navRestoring = false;
+  }
+  lastHash = navHash();
+  try { history.replaceState(navState(), "", lastHash); } catch (e) { /* sin historial propio */ }
+}
+
 function bootRoute(){
   let h = "";
-  try { h = location.hash.replace(/^#/, ""); } catch (e) { /* sin URL propia */ }
-  applyRoute(h);
+  try { h = location.hash; } catch (e) { /* sin URL propia */ }
+  restoreNav(stateFromHash(h));
 }
 
 /* Barra de demo, navbar y footer del sitio de la liga. */
@@ -4166,7 +4230,6 @@ function viewAdmin(){
       <div>
         <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
         <h1>Ajustes de administrador</h1>
-        <p class="sub">Todo lo que la liga necesita para llevar la temporada: el rol de juegos, los resultados, los equipos y las inscripciones.</p>
       </div>
       <button class="btn ghost" id="reset"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Reiniciar ${appMode === "demo" ? "demo" : "liga"}</button>
     </div>
@@ -4235,7 +4298,6 @@ function viewMaster(){
         <div>
           <p class="eyebrow">Panel master · solo JRHM.STUDIO</p>
           <h1>Ligas y accesos</h1>
-          <p class="sub">Bloquear una liga le quita a su administrador la posibilidad de editar. La liga sigue visible para el público y no se borra nada.</p>
         </div>
       </div>
       <div class="kpis">
@@ -4248,10 +4310,6 @@ function viewMaster(){
         <div class="panel-h"><h2 class="display">Cuentas</h2><span class="meta">Al ${fmtDay(TODAY)}</span></div>
         <ul class="acctlist">${accounts.map(acctRow).join("")}</ul>
       </div>
-      <div class="note">
-        <span class="tag">Cómo funciona</span>
-        <span>“Registrar pago” extiende la cuenta un mes (un año en plan anual) y no desbloquea sola: tú decides cuándo devolver la edición. Las ligas marcadas como ejemplo solo ilustran el panel.</span>
-      </div>
     </div></div>
   </div>`;
 }
@@ -4263,7 +4321,6 @@ function viewLocked(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Edición bloqueada</h1>
-        <p class="sub">La liga sigue visible para el público. Mientras el acceso esté bloqueado, el administrador no puede capturar, programar ni editar nada.</p>
       </div>
     </div>
     <div class="panel">
@@ -4504,7 +4561,6 @@ function viewAdminTeams(){
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
         <h1>Administrar equipos</h1>
-        <p class="sub">Da de alta equipos y edita su nombre, logo, manager y jugadores.</p>
       </div>
       <div class="headacts">
         <button class="btn ghost" id="reset">↺ Reiniciar ${appMode === "demo" ? "demo" : "liga"}</button>
@@ -4612,7 +4668,6 @@ function viewPersonalizar(){
       <div>
         <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
         <h1>Personalización</h1>
-        <p class="sub">El logo, el nombre y el color de la liga. Al guardar se aplican a todo el sitio: navbar, portada, botones y footer.</p>
       </div>
     </div>
 
@@ -4746,8 +4801,9 @@ document.addEventListener("click", e => {
   if (e.target.closest("#to-landing")) return openRoute("inicio");
   const statSortBtn = e.target.closest("[data-statsort]");
   if (statSortBtn){
-    const k = statSortBtn.dataset.statsort;
-    statSort = statSort.key === k ? { key: k, dir: -statSort.dir } : { key: k, dir: k === "name" ? 1 : -1 };
+    const [kind, k] = statSortBtn.dataset.statsort.split("|");
+    const cur = statSort[kind];
+    statSort[kind] = cur.key === k ? { key: k, dir: -cur.dir } : { key: k, dir: k === "name" || (kind === "pit" && k === "EFE") ? 1 : -1 };
     return render();
   }
 
@@ -5374,7 +5430,8 @@ document.addEventListener("change", e => {
 document.addEventListener("keydown", e => {
   if (e.key === "Enter" && e.target.id === "tf-newplayer"){ e.preventDefault(); addPlayerFromInput(); }
 });
-window.addEventListener("hashchange", bootRoute);
+window.addEventListener("popstate", e => restoreNav(e.state && e.state.route ? e.state : stateFromHash(location.hash)));
+window.addEventListener("hashchange", () => { if (location.hash !== lastHash) restoreNav(stateFromHash(location.hash)); });
 
 initTheme();
 bootRoute();
