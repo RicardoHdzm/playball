@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prototipo",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\PCPRID~1\\AppData\\Local\\Temp\\claude\\C--Users-PC-PRIDE-ICUE-004-OneDrive-Documentos-GitHub-playball\\43439232-fb33-42c3-94cc-022ed392c54c\\scratchpad\\serve.js",
+        "C:\\Users\\PC PRIDE ICUE 004\\OneDrive\\Documentos\\GitHub\\playball",
+        "5178"
+      ],
+      "port": 5178
+    }
+  ]
+}
