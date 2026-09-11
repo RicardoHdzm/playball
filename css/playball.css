@@ -1670,3 +1670,180 @@ button.gteam{margin:0; padding:0; border:0; background:none; color:inherit; font
 .glossary-card{padding:14px 18px 16px; border:1px dashed var(--line-2); border-radius:14px; background:transparent}
 .glossary-card h3{margin:0 0 10px; font-size:11px; letter-spacing:.14em; font-variation-settings:"wdth" 110; color:var(--ink-3)}
 .glossary-card .glossary{padding:0; border:0; border-radius:0; background:none}
+
+/* ---------- glosario plegable ---------- */
+.glossary-card{padding:0}
+.glossary-card summary{list-style:none; display:flex; align-items:center; gap:9px; padding:12px 18px; cursor:pointer; border-radius:14px; font-size:11px; letter-spacing:.14em; font-variation-settings:"wdth" 110; color:var(--ink-3); user-select:none}
+.glossary-card summary::-webkit-details-marker{display:none}
+.glossary-card summary:hover{color:var(--ink)}
+.glossary-card summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.glossary-card summary .caret{margin-left:auto; transition:transform .15s ease}
+.glossary-card[open] summary .caret{transform:rotate(180deg)}
+.glossary-card .glossary{padding:0 18px 16px}
+
+/* ---------- ajustes de líderes ---------- */
+.statpick{display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:10px; padding:16px 18px}
+.statopt{display:flex; align-items:center; gap:10px; padding:9px 12px 9px 9px; border-radius:12px; border:1px solid var(--line); background:var(--raised); color:var(--ink); text-align:left; cursor:pointer}
+.statopt:hover{border-color:var(--line-2)}
+.statopt .ab{flex:none; min-width:46px; height:34px; padding:0 6px; display:grid; place-items:center; border-radius:8px; background:var(--ground); font-family:"IBM Plex Mono",monospace; font-weight:600; font-size:13px; color:var(--ink-3)}
+.statopt .nm{flex:1; font-weight:600; font-size:13px; line-height:1.25}
+.statopt .ck{flex:none; width:20px; height:20px; display:grid; place-items:center; border-radius:6px; border:1.5px solid var(--line-2); color:var(--on-accent); font-size:11px}
+.statopt .ck i{opacity:0}
+.statopt[aria-checked="true"]{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.statopt[aria-checked="true"] .ab{background:var(--accent-tint); color:var(--accent-ink)}
+.statopt[aria-checked="true"] .ck{background:var(--accent); border-color:var(--accent)}
+.statopt[aria-checked="true"] .ck i{opacity:1}
+
+/* ---------- inicio: standing de todas las categorías ---------- */
+.homestand{display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:22px; align-items:start}
+.homestand .panel-h .btn{display:inline-flex; align-items:center; gap:6px; padding:4px 8px; font-size:12px}
+.homestand .mini-stand th{padding:8px 16px 6px; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); font-weight:600; text-align:left; border-bottom:1px solid var(--line)}
+.homestand .mini-stand th.r{text-align:right}
+.homestand .mini-stand td{padding:6px 16px}
+.homestand .mini-stand .team{display:inline-flex; align-items:center; gap:8px; border:0; background:none; padding:0; color:inherit; font:inherit; text-align:left; cursor:pointer}
+.homestand .mini-stand .team:hover span{text-decoration:underline}
+.homestand .mini-stand tr.cut td{border-bottom:2px solid var(--accent)}
+
+/* ---------- footer: redes sociales y contacto ---------- */
+.foot-contact{display:flex; flex-wrap:wrap; justify-content:space-between; gap:14px 40px; padding-top:18px; border-top:1px solid #24231F}
+.fc-group{display:flex; flex-wrap:wrap; gap:10px 26px}
+.fc-item{display:inline-flex; align-items:center; gap:10px; color:#CFCBBB; text-decoration:none; font-size:13.5px; min-width:0}
+.fc-item i{width:34px; height:34px; flex:none; display:grid; place-items:center; border-radius:50%; background:#1B1A17; color:var(--accent-bright); font-size:15px}
+.fc-item i svg{width:15px; height:15px}
+.fc-item span{display:flex; flex-direction:column; line-height:1.25; min-width:0}
+.fc-item small{font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:#8F8B7C}
+.fc-item:hover{color:#fff}
+.fc-item:hover i{background:var(--accent); color:var(--on-accent)}
+.fc-address span{max-width:42ch}
+.contactform .field label i{margin-right:4px}
+
+/* ---------- quién abre y bateo con pitcheo rival ---------- */
+.boxhead-acts{display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:10px 14px}
+.boxpair span{white-space:nowrap}
+.bt-half{display:inline-block; margin-right:7px; padding:1px 7px; border-radius:999px; background:var(--ground); color:var(--ink-3); font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; font-weight:700; vertical-align:1px}
+.tab[aria-pressed="true"] .bt-half{background:rgba(255,255,255,.18); color:inherit}
+.boxtab small{margin-left:6px; font-size:11.5px; font-weight:500; opacity:.72}
+.halftag{margin-left:8px; font-size:9.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3); font-weight:600}
+.fixedval{display:flex; align-items:center; min-height:36px; padding:0 10px; border:1px dashed var(--line-2); border-radius:8px; font-size:13.5px; color:var(--ink-2)}
+.gp-half{margin-top:2px; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent-soft); font-weight:700}
+
+/* ---------- ajustes: estadísticas ---------- */
+.statnote{margin:0; padding:0 18px 16px; font-size:12.5px; color:var(--ink-3)}
+.statopt:disabled{opacity:.45; cursor:not-allowed}
+.statopt .nm small{display:block; margin-top:1px; font-size:11px; font-weight:500; color:var(--ink-3)}
+.panel-h .switch{padding:5px 10px}
+
+/* ---------- jugadores suspendidos ---------- */
+.teameditor .rosteredit{grid-template-columns:repeat(auto-fill, minmax(290px, 1fr))}
+.rosteredit .racts{display:flex; align-items:center; gap:12px; flex:none}
+.rosteredit li.suspended .rn{color:var(--ink-3)}
+.rosteredit .rn .regtag, .rosterlist .regtag, table.stats .regtag{margin-left:7px}
+
+/* ---------- temporadas por categoría ---------- */
+.seasoncard .rulebody{font-size:13.5px}
+.seasonnext{justify-content:flex-end; border-top:1px solid var(--line)}
+.seasonnext .btn, .seasoncard .po-rule .btn{display:inline-flex; align-items:center; gap:8px}
+.sdcats{display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px; padding:16px 18px 4px}
+.sdcatpick{border:1px solid var(--line); border-radius:12px; padding:10px 12px; background:var(--raised)}
+.sdcatpick.on{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.sdcp-h{display:flex; flex-wrap:wrap; align-items:center; gap:2px 8px; cursor:pointer}
+.sdcp-h input{width:16px; height:16px; margin:0; accent-color:var(--accent)}
+.sdcp-h small{flex-basis:100%; padding-left:24px; font-size:11.5px; color:var(--ink-3)}
+.sdcp-f{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.sdcp-f label{display:flex; flex-direction:column; gap:3px; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); font-weight:600}
+.sdcp-f .sdtext{width:96px}
+.headacts{display:flex; flex-wrap:wrap; align-items:center; gap:10px}
+
+/* ---------- área de impresión ---------- */
+.printopts{display:flex; flex-wrap:wrap; align-items:center; gap:10px; padding:0 16px 16px}
+.printacts{margin-left:auto; display:flex; flex-wrap:wrap; gap:8px}
+.printacts .btn, .rolcard .btn{display:inline-flex; align-items:center; gap:7px}
+.printpreview{max-height:760px; overflow:auto; padding:20px 16px; background:var(--ground); border-top:1px solid var(--line)}
+.printpreview .printsheet{width:max-content; margin:0 auto}
+.rolgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; padding:0 16px 18px}
+.rolcard{margin:0; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--raised)}
+.rolimg{display:grid; place-items:center; min-height:220px; background:#0D0D0B; color:#A9A594; font-size:13px}
+.rolimg img{display:block; width:100%; height:auto}
+.rolcard figcaption{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px}
+.rolcard figcaption span{display:flex; flex-direction:column; line-height:1.25}
+.rolcard figcaption small{font-size:11.5px; color:var(--ink-3)}
+#printroot{display:none}
+@media print{
+  body.printing > *:not(#printroot){display:none !important}
+  body.printing #printroot{display:block}
+  body.printing{background:#fff !important}
+}
+
+/* ---------- herramientas del administrador por grupos ---------- */
+.toolgroup + .toolgroup{margin-top:28px}
+.admgroup{display:flex; gap:2px; flex:none}
+.admsep{flex:none; align-self:center; width:1px; height:22px; margin:0 6px; background:var(--line-2)}
+
+/* ---------- footer: redes sociales solo con icono ---------- */
+.fc-social{gap:10px; align-items:center}
+.fc-icon i{width:42px; height:42px; font-size:19px}
+.fc-icon i svg{width:19px; height:19px}
+
+/* ---------- ajustes: título de grupo separado de sus tarjetas ---------- */
+.toolgroup .section-label{margin-bottom:16px}
+
+/* ---------- selector de temporadas: nombres de categoría visibles ---------- */
+.seasonsel select optgroup{color:#6B6759; background:#fff; font-style:normal; font-weight:700; text-transform:uppercase; letter-spacing:.08em; font-size:11px}
+.seasonsel select optgroup option{color:#14140F; text-transform:none; letter-spacing:0; font-weight:500; font-size:13px}
+
+/* ---------- categorías ---------- */
+.catmark{width:34px; height:34px; flex:none; display:grid; place-items:center; border-radius:10px; background:var(--accent-tint); color:var(--accent-ink)}
+.catlist .payname small{display:block}
+.hourpick{display:flex; flex-wrap:wrap; gap:6px}
+.hourchip{padding:6px 12px; border:1px solid var(--line-2); border-radius:999px; background:var(--raised); color:var(--ink-2); font-family:"IBM Plex Mono",monospace; font-size:12.5px; cursor:pointer}
+.hourchip:hover{border-color:var(--ink-3)}
+.hourchip[aria-checked="true"]{background:var(--accent); border-color:var(--accent); color:var(--on-accent); font-weight:600}
+.teameditor input[list]{border:1px solid var(--line); background:var(--raised); color:var(--ink); border-radius:7px; padding:8px 10px; font:inherit; font-size:13.5px}
+
+/* ---------- programar: fin de semana por excepción ---------- */
+.slothead{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 12px}
+.slothead .switch{padding:4px 10px; font-size:12px; text-transform:none; letter-spacing:0}
+.slots .sd.wkend{color:var(--accent-ink); font-weight:700}
+.slot.na{border-radius:8px; background:repeating-linear-gradient(135deg, transparent 0 6px, var(--line) 6px 7px); opacity:.6}
+
+/* ---------- campos ---------- */
+.fieldcats{display:flex; flex-wrap:wrap; gap:8px}
+.catchip{display:inline-flex; flex-direction:column; align-items:flex-start; padding:7px 12px; border:1px solid var(--line-2); border-radius:10px; background:var(--raised); color:var(--ink); font-size:13px; font-weight:600; cursor:pointer}
+.catchip small{font-size:11px; font-weight:500; color:var(--ink-3)}
+.catchip:hover{border-color:var(--accent)}
+.teameditor .field select + .fieldnote{margin-top:2px}
+
+/* ---------- captura: entradas extra ---------- */
+.line th.extra{color:var(--accent-ink)}
+.innings-tools{padding:0 16px 14px}
+.innings-tools .btn{display:inline-flex; align-items:center; gap:7px}
+
+/* ---------- campos: categorías que juegan ahí ---------- */
+.catchip{flex-direction:row; align-items:center; gap:9px}
+.catchip .ck{width:18px; height:18px; flex:none; display:grid; place-items:center; border-radius:5px; border:1.5px solid var(--line-2); color:var(--on-accent); font-size:10px}
+.catchip .ck i{opacity:0}
+.catchip .cn{display:flex; flex-direction:column; line-height:1.2}
+.catchip[aria-checked="true"]{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+.catchip[aria-checked="true"] .ck{background:var(--accent); border-color:var(--accent)}
+.catchip[aria-checked="true"] .ck i{opacity:1}
+.catchip[aria-disabled="true"]{cursor:default}
+
+/* ---------- programar: arrastrar juegos y cerrar semana ---------- */
+.slotacts{display:flex; flex-wrap:wrap; align-items:center; gap:8px}
+.slothead .closewk{display:inline-flex; align-items:center; gap:6px; padding:4px 10px; font-size:12px; text-transform:none; letter-spacing:0}
+.slot.busy[draggable="true"]{cursor:grab; position:relative}
+.slot.busy[draggable="true"]:active{cursor:grabbing}
+.slot.busy .grip{position:absolute; top:7px; right:7px; font-size:10px; color:var(--ink-3); opacity:.7}
+.slot.dragging{opacity:.45}
+.slots.dragmode .slot.free[data-dropslot]{border-color:var(--accent); color:var(--accent-ink)}
+.slot.dropover{background:var(--accent-tint) !important; border:2px solid var(--accent) !important; color:var(--accent-ink)}
+.closedweeks{display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 16px 14px; border-top:1px solid var(--line); font-size:12px; color:var(--ink-3)}
+.wkchip{display:inline-flex; align-items:center; gap:8px; padding:4px 10px; border:1px solid var(--line-2); border-radius:999px; background:var(--raised); color:var(--ink-2); font-size:12px}
+.wkchip b{color:var(--accent-ink); font-weight:700}
+.wkchip:hover{border-color:var(--accent)}
+
+/* ---------- roster: apariciones y elegibilidad para playoffs ---------- */
+table.roster td.l .mgrtag, table.roster td.l .regtag{margin-left:7px}
+.elig{display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; white-space:nowrap}
+.elig.ok{color:var(--pos)}
+.elig.no{color:var(--ink-3); font-weight:500}
