@@ -937,6 +937,7 @@ tr.flash td{animation:flash 1.6s ease-out}
 .subhead{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 14px; padding:16px 16px 8px; border-top:1px solid var(--line)}
 .subhead h3{margin:0; font-size:13px; letter-spacing:.1em; text-transform:uppercase}
 .subhead .meta{font-size:12px; color:var(--ink-3)}
+.subhead.lineuphead{border-top:0}
 .box.lineup.pitching{min-width:760px}
 .box.lineup.pitching .who select{min-width:170px}
 .box input.el{width:44px}
@@ -2257,6 +2258,13 @@ img.logo-dark{background:#11121c}
 .srule b{font-size:13.5px; font-weight:600; color:var(--ink)}
 .srule small{font-size:11.5px; color:var(--ink-3)}
 .srule .stepper{flex:none}
+
+/* ---------- barra del anotador: sus herramientas directas, sin menús ---------- */
+.adminbar-tabs{align-items:center; flex-wrap:wrap}
+@media (max-width:640px){
+  .adminbar-tabs{flex-wrap:nowrap; min-width:0}
+  .adminbar-tabs .admtab:not([aria-current="true"]) span{display:none}
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" data-auto-replace-svg="nest" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
@@ -2269,6 +2277,7 @@ img.logo-dark{background:#11121c}
         <p class="viewlbl">Ver como</p>
         <div class="viewas" role="radiogroup" aria-label="Ver la demo como">
           <button class="seg" type="button" role="radio" aria-checked="true" data-viewas="admin"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Administrador</button>
+          <button class="seg" type="button" role="radio" aria-checked="false" data-viewas="anotador"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Anotador</button>
           <button class="seg" type="button" role="radio" aria-checked="false" data-viewas="visitante"><i class="fa-solid fa-eye" aria-hidden="true"></i> Visitante</button>
         </div>
       </div>
@@ -2800,7 +2809,7 @@ const ADMIN_GROUPS = [
   { label: "Temporada y equipos", icon: "fa-trophy",        size: "mid",  ids: ["temporada", "playoffs", "nuevatemporada", "admequipos", "inscripciones"] },
   { label: "Configuración",       icon: "fa-gear",          size: "list", ids: ["campos", "categorias", "estadisticas", "lideresconfig", "reglamento", "personalizar"] },
 ];
-const toolsIn = g => g.ids.map(id => ADMIN_TOOLS.find(t => t.id === id)).filter(Boolean);
+const toolsIn = g => g.ids.map(id => ADMIN_TOOLS.find(t => t.id === id)).filter(t => t && toolAllowed(t.id));   // el anotador solo ve las suyas
 
 const ICONS = {
   home:'<path d="M2 6.5 8 2l6 4.5V14H2z"/>',
@@ -2901,7 +2910,8 @@ function playoffStatus(catId){
 function renderNav(){
   const nav = document.getElementById("nav");
   const links = SCREENS.map(s => `<button type="button" class="navlink" data-go="${s.id}" aria-current="${navCurrent(s.id)}"><i class="fa-solid ${s.icon}" aria-hidden="true"></i><span>${s.label}</span></button>`);
-  if (!isVisitor()) links.push(`<button type="button" class="navlink admin" data-go="admin" aria-current="${navCurrent("admin")}"><i class="fa-solid ${isLocked() ? "fa-lock" : "fa-sliders"}" aria-hidden="true"></i><span>Ajustes de administrador</span></button>`);
+  if (isScorer()) links.push(`<button type="button" class="navlink admin" data-go="admin" aria-current="${navCurrent("admin")}"><i class="fa-solid ${isLocked() ? "fa-lock" : "fa-clipboard-list"}" aria-hidden="true"></i><span>Ajustes de anotador</span></button>`);
+  else if (!isVisitor()) links.push(`<button type="button" class="navlink admin" data-go="admin" aria-current="${navCurrent("admin")}"><i class="fa-solid ${isLocked() ? "fa-lock" : "fa-sliders"}" aria-hidden="true"></i><span>Ajustes de administrador</span></button>`);
   const html = links.join("");
   if (nav.dataset.key === html) return;       // sin redibujar: los íconos no parpadean
   nav.dataset.key = html;
@@ -2951,6 +2961,7 @@ function render(){
   renderChrome();
   renderNav();
   if (isVisitor() && ADMIN_SCREENS.includes(screen)) screen = "inicio";
+  if (isScorer() && ADMIN_SCREENS.includes(screen) && !SCORER_SCREENS.includes(screen)) screen = "admin";
   const locked = isLocked() && ADMIN_SCREENS.includes(screen);
   const adminArea = ADMIN_SCREENS.includes(screen) && screen !== "admin";
   view.innerHTML = (adminArea ? adminBar() : "") + (locked ? viewLocked() : !CATEGORIES.length && NEEDS_CATS.includes(screen) ? viewNoCats() : ({
@@ -2999,8 +3010,9 @@ function adminTodo(){
       d: owe.length ? owe.slice(0, 3).join(", ") + (owe.length > 3 ? "…" : "") : "Todos al corriente",
       btn: `<button class="btn" data-go="inscripciones">Inscripciones</button>` },
   ];
+  if (isScorer()) items.splice(1);   // al anotador solo le toca capturar
   return `<section class="todo">
-    <div class="todo-h"><h2 class="display">Pendientes del administrador</h2>${lock
+    <div class="todo-h"><h2 class="display">Pendientes del ${isScorer() ? "anotador" : "administrador"}</h2>${lock
       ? `<span class="stp block">Edición bloqueada</span>` : `<span class="meta">Semana ${TODAY_WEEK} · ${weekRange(TODAY_WEEK)}</span>`}</div>
     <div class="todo-list">${items.map(x => `<div class="todo-item${x.n ? " on" : ""}">
       <b class="num">${x.n}</b>
@@ -4020,7 +4032,7 @@ function viewInscripciones(){
   <div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Inscripciones</h1>
       </div>
       ${published ? `<button class="btn ghost" id="reset">↺ Reiniciar demo</button>` : ""}
@@ -4318,7 +4330,7 @@ function viewCorregir(){
   <div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Corregir resultado</h1>
       </div>
       <div class="headacts">${capModeTabs()}${published ? `<button class="btn ghost" id="reset">↺ Reiniciar demo</button>` : ""}</div>
@@ -4866,7 +4878,7 @@ function viewProgramar(){
   <div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Programar juegos</h1>
       </div>
       <div class="headacts">${schedModeTabs()}<label class="switch"><input type="checkbox" id="sugg-toggle" ${showSugg ? "checked" : ""}><span>Mostrar sugerencias</span></label></div>
@@ -5008,7 +5020,7 @@ function viewTemporada(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Temporada</h1>
       </div>
     </div>
@@ -5243,7 +5255,7 @@ function viewNuevaTemporada(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Nueva temporada</h1>
       </div>
       <button type="button" class="btn ghost" data-sdcancel>Cancelar</button>
@@ -5705,7 +5717,7 @@ function viewProgramarPlayoffs(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Programar juegos</h1>
       </div>
       <div class="headacts">${schedModeTabs()}<button type="button" class="btn ghost" data-go="playoffs"><i class="fa-solid fa-sitemap" aria-hidden="true"></i> Ver la llave</button></div>
@@ -5729,6 +5741,7 @@ function viewProgramarPlayoffs(){
 
 function viewPlayoffs(){
   const canEdit = !isLocked() && !isVisitor();
+  const canAdmin = canEdit && !isScorer();   // programar y cerrar la temporada regular: solo el administrador
   const cats = CATEGORIES.filter(c => bracketFor(c.id));
   const head = `<div class="page-head">
       <div>
@@ -5778,7 +5791,7 @@ function viewPlayoffs(){
       if (game) return `<li class="po-gl"><span class="po-gn">J${n}</span><span>${DIAS[parseD(game.d).getUTCDay()].slice(0, 3)} ${fmtDay(game.d)} · ${fmtHour(game.h)}</span>${
         canEdit && game.d <= TODAY ? `<button type="button" class="gact primary" data-capture="${game.id}">Capturar</button>` : ""}<button type="button" class="linkbtn" data-viewgame="${game.id}">Ver juego</button></li>`;
       return `<li class="po-gl todo"><span class="po-gn">J${n}</span><span>Sin programar</span>${
-        canEdit ? `<button type="button" class="gact" data-poschedule="${sid}|${n}">Programar</button>` : ""}</li>`;
+        canAdmin ? `<button type="button" class="gact" data-poschedule="${sid}|${n}">Programar</button>` : ""}</li>`;
     }).join("");
     return `<div class="po-series${s.winner ? " done" : ""}">
       <div class="po-sh"><span>Al mejor de 3</span><span class="po-status">${esc(status)}</span></div>
@@ -5798,10 +5811,10 @@ function viewPlayoffs(){
     ? `<div class="note po-note"><span class="tag">Publicados</span>
         <span>Temporada regular de ${esc(cat.name)} cerrada el ${fmtDay(PLAYOFFS.cats[cat.id].closedAt)}.</span>
         ${(() => { const n = pendingPlayoffGames().filter(p => p.cat === cat.id).length;
-          return canEdit && n ? `<button type="button" class="btn primary" data-poprog><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Programar ${plural(n, "juego pendiente", "juegos pendientes")}</button>` : ""; })()}</div>`
+          return canAdmin && n ? `<button type="button" class="btn primary" data-poprog><i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Programar ${plural(n, "juego pendiente", "juegos pendientes")}</button>` : ""; })()}</div>`
     : `<div class="note po-note"><span class="tag">En vivo</span>
         <span>Proyección con el standing de hoy: clasifican los <b>${P}</b> primeros de ${table.length}.</span>
-        ${canEdit ? `<button type="button" class="btn primary" data-poclose="${cat.id}"><i class="fa-solid fa-lock" aria-hidden="true"></i> Cerrar temporada regular y publicar</button>` : ""}</div>`;
+        ${canAdmin ? `<button type="button" class="btn primary" data-poclose="${cat.id}"><i class="fa-solid fa-lock" aria-hidden="true"></i> Cerrar temporada regular y publicar</button>` : ""}</div>`;
 
   return `<div class="screen">
     ${head.replace(`data-pocat="${cat.id}" aria-pressed="false"`, `data-pocat="${cat.id}" aria-pressed="true"`).replace("<!--po-season-->", ` · ${esc(cat.name)} · ${seasonLabel(cat.id)}`)}
@@ -6251,7 +6264,8 @@ function lineupTable(side){
     </tr>`;
   }).join("")).join("");
   const sum = k => slots.reduce((t, s) => t + s.entries.reduce((u, e) => u + (+e[k] || 0), 0), 0);
-  return `<div class="tablewrap"><table class="box lineup">
+  return `<div class="subhead lineuphead"><h3 class="display">Bateo · ${esc(team)}</h3><span class="meta">Su orden al bat, contra el pitcheo del rival</span></div>
+    <div class="tablewrap"><table class="box lineup">
       <thead><tr><th>#</th><th class="l">Jugador</th><th>Pos</th><th>Ent.</th>${batKeys().map(s => `<th>${STAT_LABEL[s] || s}</th>`).join("")}${avgOn() ? "<th>AVG</th>" : ""}<th></th></tr></thead>
       <tbody>${rows}</tbody>
       <tfoot><tr><td></td><td class="l">Totales</td><td></td><td></td>${batKeys().map(s => `<td class="num" data-lusum="${side}|${s}">${sum(s)}</td>`).join("")}
@@ -6571,7 +6585,7 @@ function viewCapturar(){
   <div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Capturar resultado</h1>
       </div>
       <div class="headacts">${capModeTabs()}${published ? `<button class="btn ghost" id="reset">↺ Reiniciar demo</button>` : ""}</div>
@@ -6829,10 +6843,15 @@ let accounts = [
   { id: "ejemplo-empresarial", name: "Liga Empresarial del Valle", note: "Ejemplo", admin: "Administrador de ejemplo", plan: "Anual", paidUntil: "2026-08-30", blocked: false },
 ];
 const ADMIN_SCREENS = ["admin", "capturar", "inscripciones", "programar", "admequipos", "temporada", "nuevatemporada", "personalizar", "lideresconfig", "estadisticas", "imprimir", "categorias", "campos", "reglamento", "rol"];
-/* En la demo se puede ver la liga como administrador o como visitante (equipos y público):
+/* En la demo se puede ver la liga como administrador, como anotador (solo captura resultados) o como visitante (equipos y público):
    el visitante no ve las pantallas ni los botones del administrador. */
 let viewer = "admin";
 const isVisitor = () => route === "app" && ((appMode === "demo" && viewer === "visitante") || !!viewingSeason);
+const isScorer = () => route === "app" && appMode === "demo" && viewer === "anotador" && !viewingSeason;   // captura y corrige resultados, e imprime hojas
+const SCORER_SCREENS = ["admin", "capturar", "imprimir"];   // Ajustes de anotador, Capturar y Corregir (misma pantalla) y Hoja de anotación
+const SCORER_TOOLS = ["capturar", "corregir", "imprimir"];
+const toolAllowed = id => !isScorer() || SCORER_TOOLS.includes(id);
+const roleEyebrow = () => isScorer() ? "Anotador" : "Administrador · acceso restringido";
 const currentAccount = () => accounts.find(a => a.id === (appMode === "demo" ? "valle-alto" : "mi-liga"));
 const isLocked = () => route === "app" && !!(currentAccount() || {}).blocked;
 const daysUntil = d => Math.round((parseD(d) - parseD(TODAY)) / DAY_MS);
@@ -7002,7 +7021,7 @@ function renderChrome(){
   if (bar) bar.hidden = false;
   setText("demotag", demo ? "Demo" : "Liga nueva");
   setText("demotext", demo
-    ? (viewingSeason ? "Temporada pasada en solo lectura." : isVisitor() ? "Así ven el sitio los equipos y el público." : isLocked() ? "Edición bloqueada: la liga tiene un pago pendiente." : "Prototipo de STRIKEONE con datos de ejemplo.")
+    ? (viewingSeason ? "Temporada pasada en solo lectura." : isVisitor() ? "Así ven el sitio los equipos y el público." : isScorer() ? "Así ve el sitio el anotador: captura, corrige e imprime hojas." : isLocked() ? "Edición bloqueada: la liga tiene un pago pendiente." : "Prototipo de STRIKEONE con datos de ejemplo.")
     : "Sin equipos, juegos ni resultados: lo que captures dura mientras la página esté abierta.");
   const dt = document.getElementById("demotext");
   if (dt && dt.textContent.includes("STRIKEONE")) dt.innerHTML = esc(dt.textContent).replace("STRIKEONE", `<b class="somark inline">STRIKEONE</b>`);
@@ -7062,7 +7081,7 @@ function viewReglamento(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Reglamento</h1>
       </div>
     </div>
@@ -7126,7 +7145,7 @@ function renderFooter(){
       </div>
       <nav class="foot-links" aria-label="Secciones del sitio">
         ${SCREENS.map(s => `<button type="button" data-go="${s.id}">${s.label}</button>`).join("")}
-        ${isVisitor() ? "" : `<button type="button" data-go="admin">Ajustes de administrador</button>`}
+        ${isVisitor() ? "" : isScorer() ? `<button type="button" data-go="admin">Ajustes de anotador</button>` : `<button type="button" data-go="admin">Ajustes de administrador</button>`}
         ${RULES_FILE ? `<button type="button" class="foot-rules" data-rulesopen><i class="fa-solid fa-file-lines" aria-hidden="true"></i> Reglamento</button>` : ""}
       </nav>
     </div>
@@ -7141,9 +7160,14 @@ function renderFooter(){
 
 /* Barra de herramientas dentro del área de administración. */
 function adminBar(){
-  return `<nav class="adminbar" aria-label="Herramientas del administrador">
-    <button type="button" class="adminbar-home" data-go="admin"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Ajustes</span></button>
-    <div class="adminbar-groups">${ADMIN_GROUPS.map((g, i) => {
+  const groups = ADMIN_GROUPS.filter(g => toolsIn(g).length);
+  const home = `<button type="button" class="adminbar-home" data-go="admin"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Ajustes</span></button>`;
+  /* Con un solo grupo (el anotador) sus herramientas van directas, sin menú. */
+  if (groups.length === 1) return `<nav class="adminbar" aria-label="Herramientas">${home}
+    <div class="adminbar-tabs">${toolsIn(groups[0]).map(t => `<button type="button" class="admtab" data-go="${t.id}" aria-current="${navCurrent(t.id)}"><i class="fa-solid ${t.icon}" aria-hidden="true"></i><span>${t.label}</span></button>`).join("")}</div>
+  </nav>`;
+  return `<nav class="adminbar" aria-label="Herramientas del administrador">${home}
+    <div class="adminbar-groups">${groups.map((g, i) => {
       const tools = toolsIn(g), current = tools.some(t => navCurrent(t.id));
       return `<div class="admgrp${current ? " current" : ""}">
         <button type="button" class="admgrp-btn" data-admmenu="${i}" aria-expanded="false" aria-haspopup="true">
@@ -7186,13 +7210,13 @@ function viewAdmin(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
-        <h1>Ajustes de administrador</h1>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
+        <h1>Ajustes de ${isScorer() ? "anotador" : "administrador"}</h1>
       </div>
       <button class="btn ghost" id="reset"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Reiniciar ${appMode === "demo" ? "demo" : "liga"}</button>
     </div>
     ${teams.length ? adminTodo() : onboardingPanel()}
-    ${ADMIN_GROUPS.map(g => `<section class="toolgroup ${g.size}">
+    ${ADMIN_GROUPS.filter(g => toolsIn(g).length).map(g => `<section class="toolgroup ${g.size}">
       <p class="section-label">${g.label}</p>
       <div class="toolgrid">${toolsIn(g).map(t => `<button type="button" class="toolcard" data-go="${t.id}">
         <span class="ti"><i class="fa-solid ${t.icon}" aria-hidden="true"></i></span>
@@ -7277,7 +7301,7 @@ function viewLocked(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Edición bloqueada</h1>
       </div>
     </div>
@@ -7300,7 +7324,7 @@ function viewNoCats(){
   const titles = { standing: "Tabla de posiciones", equipos: "Equipos", lideres: "Líderes", programar: "Programar juegos",
     capturar: capMode === "corregir" ? "Corregir resultado" : "Capturar resultado", admequipos: "Administrar equipos", inscripciones: "Inscripciones",
     temporada: "Temporada", nuevatemporada: "Nueva temporada", imprimir: "Hoja de anotación", rol: "Rol de juego" };
-  const admin = !isVisitor();
+  const admin = !isVisitor() && !isScorer();
   return `<div class="screen">
     <div class="page-head">
       <div>
@@ -7653,7 +7677,7 @@ function viewCampos(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Campos</h1>
       </div>
       <div class="headacts"><button class="btn primary" data-fieldnew><i class="fa-solid fa-plus" aria-hidden="true"></i> Nuevo campo</button></div>
@@ -7841,7 +7865,7 @@ function viewCategorias(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Categorías</h1>
       </div>
       <div class="headacts"><button class="btn primary" data-catnew><i class="fa-solid fa-plus" aria-hidden="true"></i> Nueva categoría</button></div>
@@ -7864,7 +7888,7 @@ function viewAdminTeams(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">Administrador · acceso restringido</p>
+        <p class="eyebrow">${roleEyebrow()}</p>
         <h1>Administrar equipos</h1>
       </div>
       <div class="headacts">
@@ -7920,7 +7944,7 @@ function applyTheme(mode){
   const btn = document.getElementById("theme");
   if (btn){
     btn.setAttribute("aria-pressed", String(dark));
-    document.getElementById("theme-icon").innerHTML = `<i class="fa-solid ${dark ? "fa-sun" : "fa-moon"}" aria-hidden="true"></i>`;
+    document.getElementById("theme-icon").innerHTML = `<i class="fa-solid ${dark ? "fa-bolt" : "fa-moon"}" aria-hidden="true"></i>`;
     btn.title = dark ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
     document.getElementById("theme-label").textContent = dark ? "Tema claro" : "Tema oscuro";
   }
@@ -7979,7 +8003,7 @@ function viewPersonalizar(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Personalización</h1>
       </div>
     </div>
@@ -8440,7 +8464,7 @@ function viewImprimir(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Hoja de anotación</h1>
       </div>
     </div>
@@ -8475,7 +8499,7 @@ function viewRol(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Rol de juego</h1>
       </div>
     </div>
@@ -8506,7 +8530,7 @@ function viewEstadisticas(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Estadísticas</h1>
       </div>
     </div>
@@ -8559,7 +8583,7 @@ function viewLideresConfig(){
   return `<div class="screen">
     <div class="page-head">
       <div>
-        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <p class="eyebrow">${esc(leagueFull())} · ${isScorer() ? "Anotador" : "Administrador"}</p>
         <h1>Líderes</h1>
       </div>
       <button type="button" class="btn ghost" data-go="lideres"><i class="fa-solid fa-medal" aria-hidden="true"></i> Ver Líderes</button>
@@ -8646,8 +8670,8 @@ document.addEventListener("click", e => {
     viewer = viewAsBtn.dataset.viewas;
     render();
     window.scrollTo({ top: 0 });
-    return toast(viewer === "visitante"
-      ? "Vista de visitante: así ven la liga los equipos y el público"
+    return toast(viewer === "visitante" ? "Vista de visitante: así ven la liga los equipos y el público"
+      : viewer === "anotador" ? "Vista de anotador: captura y corrige resultados, e imprime hojas"
       : "Vista de administrador: con las pantallas del administrador");
   }
   if (e.target.closest("#to-landing")) return openRoute("inicio");

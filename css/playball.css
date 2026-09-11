@@ -931,6 +931,7 @@ tr.flash td{animation:flash 1.6s ease-out}
 .subhead{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:4px 14px; padding:16px 16px 8px; border-top:1px solid var(--line)}
 .subhead h3{margin:0; font-size:13px; letter-spacing:.1em; text-transform:uppercase}
 .subhead .meta{font-size:12px; color:var(--ink-3)}
+.subhead.lineuphead{border-top:0}
 .box.lineup.pitching{min-width:760px}
 .box.lineup.pitching .who select{min-width:170px}
 .box input.el{width:44px}
@@ -2251,3 +2252,10 @@ img.logo-dark{background:#11121c}
 .srule b{font-size:13.5px; font-weight:600; color:var(--ink)}
 .srule small{font-size:11.5px; color:var(--ink-3)}
 .srule .stepper{flex:none}
+
+/* ---------- barra del anotador: sus herramientas directas, sin menús ---------- */
+.adminbar-tabs{align-items:center; flex-wrap:wrap}
+@media (max-width:640px){
+  .adminbar-tabs{flex-wrap:nowrap; min-width:0}
+  .adminbar-tabs .admtab:not([aria-current="true"]) span{display:none}
+}
