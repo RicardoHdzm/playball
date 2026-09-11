@@ -18,6 +18,10 @@ if (html.split(link).length !== 2){
   process.exit(1);
 }
 
-const out = html.replace(link, () => `<style>\n${css.replace(/\n+$/, "")}\n</style>`);
+// El doctype y los meta de index.html son para GitHub Pages; el artifact ya los pone.
+const soloIndex = /^<!doctype html>\n<!-- solo-index[\s\S]*?<!-- \/solo-index -->\n/i;
+const out = html
+  .replace(soloIndex, "")
+  .replace(link, () => `<style>\n${css.replace(/\n+$/, "")}\n</style>`);
 fs.writeFileSync(path.join(root, "prototipo-playball.html"), out);
 console.log(`prototipo-playball.html listo · ${Math.round(out.length / 1024)} KB`);

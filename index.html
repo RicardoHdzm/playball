@@ -1,53 +1,51 @@
+<!doctype html>
+<!-- solo-index: GitHub Pages necesita doctype y viewport; el artifact publicado ya los trae y el armado los quita -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- /solo-index -->
 <title>STRIKEOUT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600&display=swap">
 
 <link rel="stylesheet" href="css/playball.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" data-auto-replace-svg="nest" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
 <div class="shell">
-  <aside class="side">
-    <div class="brand">
-      <div class="mark">STRIKE<b>OUT</b></div>
-      <div class="by">by <span>JRHM.STUDIO</span></div>
-    </div>
-
-    <button class="leaguepick" type="button" title="En la versión final, aquí se cambia de liga o de temporada">
-      <span class="lbl">Liga</span>
-      <span class="val">Valle Alto <span>Temporada 19 ▾</span></span>
-    </button>
-
-    <nav id="nav" aria-label="Secciones">
-      <p class="navsec">Público</p>
-    </nav>
-
-    <div class="side-foot">
-      <button class="themebtn" id="to-landing" type="button">
-        <span class="ti"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3H3v10h3M10.5 11l3-3-3-3M13.5 8h-7"/></svg></span>
-        <span>Cambiar de liga</span>
-      </button>
-      <button class="themebtn" id="theme" type="button" aria-pressed="false">
-        <span class="ti" id="theme-icon"></span>
-        <span id="theme-label">Tema oscuro</span>
-      </button>
+  <div class="demobar" id="demobar" hidden>
+    <div class="demobar-in">
+      <span class="demotag"><i class="fa-solid fa-flask" aria-hidden="true"></i> <span id="demotag">Demo</span></span>
+      <span class="demotext" id="demotext"></span>
       <div class="viewasbox" id="viewas" hidden>
-        <p class="viewlbl">Ver la demo como</p>
+        <p class="viewlbl">Ver como</p>
         <div class="viewas" role="radiogroup" aria-label="Ver la demo como">
-          <button class="seg" type="button" role="radio" aria-checked="true" data-viewas="admin">Administrador</button>
-          <button class="seg" type="button" role="radio" aria-checked="false" data-viewas="visitante">Visitante</button>
+          <button class="seg" type="button" role="radio" aria-checked="true" data-viewas="admin"><i class="fa-solid fa-user-shield" aria-hidden="true"></i> Administrador</button>
+          <button class="seg" type="button" role="radio" aria-checked="false" data-viewas="visitante"><i class="fa-solid fa-eye" aria-hidden="true"></i> Visitante</button>
         </div>
       </div>
-      <div class="rolechip"><span class="dot"></span> Administrador</div>
+      <button class="demolink" id="to-landing" type="button"><i class="fa-solid fa-right-left" aria-hidden="true"></i> Cambiar de liga</button>
     </div>
-  </aside>
+  </div>
+
+  <header class="topbar">
+    <div class="topbar-in">
+      <button class="sitebrand" type="button" data-go="inicio" aria-label="Ir al inicio">
+        <span class="brand-logo" id="brand-logo"></span>
+        <span class="brand-name"><b id="brand-l1">Liga</b><small id="brand-l2"></small></span>
+      </button>
+      <nav id="nav" aria-label="Secciones"></nav>
+      <div class="topbar-acts">
+        <button class="iconbtn" id="theme" type="button" aria-pressed="false"><span id="theme-icon"></span><span class="sr-only" id="theme-label">Tema oscuro</span></button>
+        <button class="iconbtn menu-toggle" id="menu-toggle" type="button" aria-expanded="false" aria-controls="nav"><i class="fa-solid fa-bars" aria-hidden="true"></i><span class="sr-only">Menú</span></button>
+      </div>
+    </div>
+  </header>
 
   <main>
-    <div class="banner">
-      <b>Prototipo</b>
-      <span>Los nombres de los equipos de Novatos y Avanzados, el logo de la liga y el roster y el manager de Caimanes de Villas son reales. Los equipos de Femenil, los demás managers y rosters, los pagos de inscripción, el calendario, los resultados y las estadísticas son de ejemplo.</span>
-    </div>
     <div class="wrap" id="view"></div>
   </main>
+
+  <footer class="sitefoot" id="sitefoot"></footer>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -73,7 +71,8 @@
    que se calcula de ellos y las estadísticas de jugador.
    ============================================================ */
 
-const LEAGUE = { name: "Liga Valle Alto", season: "19", year: "2026" };
+const LEAGUE = { name: "Liga Valle Alto", sport: "Softbol", season: "19", year: "2026" };
+const leagueFull = () => [LEAGUE.name, LEAGUE.sport].filter(Boolean).join(" ");
 
 /* Logo de STRIKEOUT en la tarjeta de la liga. Pon aquí la ruta del archivo o un
    data URI; mientras esté vacío se dibuja el logotipo tipográfico. */
@@ -375,17 +374,23 @@ function allResults(){
 let screen = "inicio";
 let openTeam = null;             // la vista de Equipos arranca sin ningún equipo elegido
 
+/* Navbar del sitio: las secciones públicas. Íconos de Font Awesome. */
 const SCREENS = [
-  { id:"inicio",     label:"Inicio",       icon:"home",  sec:"Público" },
-  { id:"standing",   label:"Standing",     icon:"table" },
-  { id:"equipos",    label:"Equipos",      icon:"users" },
-  { id:"calendario", label:"Calendario",   icon:"cal" },
-  { id:"lideres",    label:"Líderes",      icon:"star" },
-  { id:"capturar",   label:"Capturar juego", icon:"pen", sec:"Administrador", admin:true },
-  { id:"inscripciones", label:"Inscripciones", icon:"pay", admin:true },
-  { id:"programar",  label:"Programar juegos", icon:"plan", admin:true },
-  { id:"admequipos", label:"Administrar equipos", icon:"teams", admin:true },
-  { id:"temporada",  label:"Temporada",    icon:"trophy", admin:true },
+  { id:"inicio",     label:"Inicio",     icon:"fa-house" },
+  { id:"standing",   label:"Standing",   icon:"fa-ranking-star" },
+  { id:"equipos",    label:"Equipos",    icon:"fa-people-group" },
+  { id:"calendario", label:"Calendario", icon:"fa-calendar-days" },
+  { id:"lideres",    label:"Líderes",    icon:"fa-medal" },
+];
+/* Herramientas de la página Ajustes de administrador. */
+const ADMIN_TOOLS = [
+  { id:"programar",     label:"Programar juegos",    icon:"fa-calendar-plus",       desc:"Arma el rol de cada semana: equipos, día, hora y campo." },
+  { id:"capturar",      label:"Capturar resultado",  icon:"fa-pen-to-square",       desc:"Marcador, orden al bat y pitcheo de un juego programado." },
+  { id:"corregir",      label:"Corregir resultado",  icon:"fa-rotate-left",         desc:"Arregla el resultado o el box score de un juego ya capturado." },
+  { id:"admequipos",    label:"Administrar equipos", icon:"fa-shield-halved",       desc:"Altas, logos, managers y jugadores de cada equipo." },
+  { id:"inscripciones", label:"Inscripciones",       icon:"fa-money-check-dollar",  desc:"Qué equipos ya cubrieron su inscripción." },
+  { id:"temporada",     label:"Temporada",           icon:"fa-trophy",              desc:"Juegos de temporada regular y equipos que pasan a playoffs." },
+  { id:"personalizar",  label:"Personalización",     icon:"fa-palette",             desc:"Logo, nombre de la liga y color del sitio." },
 ];
 
 const ICONS = {
@@ -395,6 +400,7 @@ const ICONS = {
   cal:'<path d="M2 4h12v10H2z"/><path d="M2 7h12M5.5 2v3M10.5 2v3"/>',
   star:'<path d="M8 1.8 9.9 5.7l4.3.6-3.1 3 .7 4.3L8 11.6l-3.8 2 .7-4.3-3.1-3 4.3-.6z"/>',
   pen:'<path d="M11.2 2.3 13.7 4.8 5.4 13.1 2 14l.9-3.4z"/><path d="M9.9 3.6l2.5 2.5"/>',
+  fix:'<path d="M13.4 8.6A5.5 5.5 0 1 1 11.8 4"/><path d="M13.5 1.8v3.3h-3.3"/><path d="M5.6 8.2l1.7 1.7 3-3"/>',
   pay:'<rect x="1.5" y="3.5" width="13" height="9" rx="1.5"/><path d="M1.5 6.5h13M4 10h3"/>',
   plan:'<path d="M2 4h12v10H2z"/><path d="M2 7h12M5.5 2v3M10.5 2v3"/><path d="M8 8.8v3.6M6.2 10.6h3.6"/>',
   teams:'<path d="M8 1.8 13.5 3.6V8c0 3.1-2.3 5.3-5.5 6.3C4.8 13.3 2.5 11.1 2.5 8V3.6z"/><path d="M8 5.5v5M5.5 8h5"/>',
@@ -481,36 +487,86 @@ function playoffStatus(catId){
 /* ---------------- render: shell ---------------- */
 function renderNav(){
   const nav = document.getElementById("nav");
-  nav.innerHTML = SCREENS.filter(s => !(s.admin && isVisitor())).map(s => `
-    ${s.sec && s.id !== "inicio" ? `<p class="navsec" style="margin-top:16px">${s.sec}</p>` : ""}
-    <button class="navbtn${s.admin ? " admin" : ""}" data-go="${s.id}" aria-current="${screen === s.id}">
-      ${icon(s.icon)}${s.label}${s.admin && isLocked() ? `<span class="lockmark" title="Edición bloqueada">${icon("lock")}</span>` : ""}
-    </button>`).join("");
+  const links = SCREENS.map(s => `<button type="button" class="navlink" data-go="${s.id}" aria-current="${navCurrent(s.id)}"><i class="fa-solid ${s.icon}" aria-hidden="true"></i><span>${s.label}</span></button>`);
+  if (!isVisitor()) links.push(`<button type="button" class="navlink admin" data-go="admin" aria-current="${navCurrent("admin")}"><i class="fa-solid ${isLocked() ? "fa-lock" : "fa-sliders"}" aria-hidden="true"></i><span>Ajustes de administrador</span></button>`);
+  const html = links.join("");
+  if (nav.dataset.key === html) return;       // sin redibujar: los íconos no parpadean
+  nav.dataset.key = html;
+  nav.innerHTML = html;
 }
 
-function go(id){ screen = id; changedTeams = [];
+/* Ajustes de administrador cubre todas sus herramientas; Capturar y Corregir son la misma
+   pantalla con dos modos, pero en la barra de herramientas son dos opciones. */
+const navCurrent = id => id === "admin" ? ADMIN_SCREENS.includes(screen)
+  : id === "corregir" ? screen === "capturar" && capMode === "corregir"
+  : id === "capturar" ? screen === "capturar" && capMode !== "corregir" : screen === id;
+
+function go(id){
+  if (id === "corregir"){ id = "capturar"; capMode = "corregir"; if (!fixForm) fixForm = defaultFixForm(); }
+  else if (id === "capturar") capMode = "nuevo";
+  if (id !== "personalizar") brandForm = null;
+  screen = id; changedTeams = [];
   if (id === "calendario"){ calWeek = null; calCat = "todas"; openGame = null; }
- render(); window.scrollTo({ top:0 }); }
+  render(); window.scrollTo({ top:0 });
+}
 
 function render(){
   document.querySelector(".shell").classList.toggle("fullpage", route !== "app");
   const view = document.getElementById("view");
+  const topbar = document.querySelector(".topbar");
+  if (topbar) topbar.classList.remove("open");
+  if (route !== "app") document.title = "STRIKEOUT";
   if (route === "inicio"){ view.innerHTML = viewLanding(); return; }
   if (route === "master"){ view.innerHTML = viewMaster(); return; }
   renderChrome();
   renderNav();
   if (isVisitor() && ADMIN_SCREENS.includes(screen)) screen = "inicio";
   const locked = isLocked() && ADMIN_SCREENS.includes(screen);
-  view.innerHTML = locked ? viewLocked() : ({
+  const adminArea = ADMIN_SCREENS.includes(screen) && screen !== "admin";
+  view.innerHTML = (adminArea ? adminBar() : "") + (locked ? viewLocked() : ({
     inicio: viewInicio, standing: viewStanding, equipos: viewEquipos,
-    calendario: viewCalendario, lideres: viewLideres, capturar: viewCapturar,
-    inscripciones: viewInscripciones, programar: viewProgramar, admequipos: viewAdminTeams, temporada: viewTemporada,
-  })[screen]();
+    calendario: viewCalendario, lideres: viewLideres, admin: viewAdmin, capturar: viewCapturar,
+    inscripciones: viewInscripciones, programar: viewProgramar, admequipos: viewAdminTeams, temporada: viewTemporada, personalizar: viewPersonalizar,
+  })[screen]());
   if (!locked && screen === "capturar") recalcCapture();
   if (screen === "calendario") centerWeek();
 }
 
 /* ---------------- pantallas ---------------- */
+/* Lo que le toca hacer al administrador, con un botón directo a cada tarea. */
+function adminTodo(){
+  if (isVisitor() || !Object.values(TEAMS).flat().length) return "";
+  const lock = isLocked();
+  const due = calGames().filter(g => g.st === "P" && g.d <= TODAY).sort((x, y) => (x.d + x.h).localeCompare(y.d + y.h));
+  const left = CATEGORIES.reduce((n, c) => {
+    const t = (TEAMS[c.id] || []).length;
+    if (t < 2) return n;
+    return n + Math.max(0, t * SEASON.games / 2 - calGames().filter(g => g.c === c.id && g.st !== "NJ").length);
+  }, 0);
+  const owe = Object.values(TEAMS).flat().filter(blockedByDues);
+  const nj = calGames().filter(g => g.st === "NJ").length;
+  const items = [
+    { n: due.length, t: due.length === 1 ? "juego por capturar" : "juegos por capturar",
+      d: due.length ? due.slice(0, 2).map(g => `${g.a} vs ${g.b} (${g.d === TODAY ? "hoy" : fmtDay(g.d)})`).join(" · ") + (due.length > 2 ? ` y ${due.length - 2} más` : "") : "Todo lo jugado ya tiene resultado",
+      btn: due.length ? `<button class="btn primary" data-capture="${due[0].id}">Capturar</button>` : `<button class="btn" data-go="corregir">Corregir</button>` },
+    { n: left, t: left === 1 ? "juego de temporada regular por programar" : "juegos de temporada regular por programar",
+      d: nj ? `${plural(nj, "juego suspendido", "juegos suspendidos")} por reprogramar` : `Cada equipo juega ${SEASON.games}`,
+      btn: `<button class="btn" data-go="programar">Programar</button>` },
+    { n: owe.length, t: owe.length === 1 ? "equipo sin cubrir su inscripción" : "equipos sin cubrir su inscripción",
+      d: owe.length ? owe.slice(0, 3).join(", ") + (owe.length > 3 ? "…" : "") : "Todos al corriente",
+      btn: `<button class="btn" data-go="inscripciones">Inscripciones</button>` },
+  ];
+  return `<section class="todo">
+    <div class="todo-h"><h2 class="display">Pendientes del administrador</h2>${lock
+      ? `<span class="stp block">Edición bloqueada</span>` : `<span class="meta">Semana ${TODAY_WEEK} · ${weekRange(TODAY_WEEK)}</span>`}</div>
+    <div class="todo-list">${items.map(x => `<div class="todo-item${x.n ? " on" : ""}">
+      <b class="num">${x.n}</b>
+      <span class="tx"><span class="tt">${x.t}</span><span class="td">${esc(x.d)}</span></span>
+      ${lock ? "" : x.btn}
+    </div>`).join("")}</div>
+  </section>`;
+}
+
 function viewInicio(){
   const home = mainCat();
   const top = ordered(home.id).slice(0, 6);
@@ -519,26 +575,32 @@ function viewInicio(){
   const teams = Object.values(TEAMS).flat().length;
   return `
   <div class="screen">
-    <section class="hero">
-      <div class="hero-main">
-        <p class="season">Temporada ${LEAGUE.season} · ${LEAGUE.year}</p>
-        <h2>${LEAGUE.name}</h2>
-        <p class="sub" style="margin:0">Tabla, resultados y estadísticas de la liga en un solo lugar. Se actualiza en cuanto el administrador captura el juego — nadie tiene que rehacer la tabla a mano.</p>
-        <div class="hero-stats">
-          <div class="hstat"><div class="k">Categorías</div><div class="v num">${CATEGORIES.length}</div></div>
-          <div class="hstat"><div class="k">Equipos</div><div class="v num">${teams}</div></div>
-          <div class="hstat"><div class="k">Juegos jugados</div><div class="v num">${played.length}</div></div>
-          <div class="hstat"><div class="k">Semana</div><div class="v num">${TODAY_WEEK}</div></div>
-          <div class="hstat"><div class="k">Último resultado</div><div class="v" style="font-size:15px; padding-top:5px">${published ? "hace un momento" : lastPlayed ? fmtDay(lastPlayed) : "—"}</div></div>
+    <section class="hero2">
+      <div class="hero2-bg" aria-hidden="true"></div>
+      <div class="hero2-in">
+        <div class="hero2-logo${leagueLogo() ? "" : " empty"}">${leagueLogo()
+          ? `<img src="${leagueLogo()}" alt="${esc(leagueFull())}">`
+          : `<span class="noimg">Sin imagen</span>`}</div>
+        <div class="hero2-text">
+          <p class="hero2-kicker"><i class="fa-solid fa-baseball" aria-hidden="true"></i> Temporada ${esc(LEAGUE.season)} · ${esc(LEAGUE.year)}${teams ? ` · Semana ${TODAY_WEEK}` : ""}</p>
+          <h1>${esc(leagueFull())}</h1>
+          <p class="hero2-sub">${teams
+            ? `Resultados, standing, calendario y estadísticas de las ${CATEGORIES.filter(c => c.active).length} categorías de la liga, al día.`
+            : "El sitio de la liga: aquí aparecen el standing, el calendario y los resultados en cuanto se capturen."}</p>
+          <div class="hero2-cta">
+            <button class="btn cta" data-go="standing"><i class="fa-solid fa-ranking-star" aria-hidden="true"></i> Ver standing</button>
+            <button class="btn cta ghost" data-go="calendario"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Calendario</button>
+          </div>
         </div>
       </div>
-      <div class="logoblock${leagueLogo() ? " has-img" : " no-img"}">
-        ${leagueLogo()
-          ? `<img src="${leagueLogo()}" alt="${esc(LEAGUE.name)}">`
-          : `<span class="noimg">Sin imagen</span>`}
+      <div class="hero2-stats">
+        <div><b class="num">${CATEGORIES.filter(c => c.active).length}</b><span>Categorías</span></div>
+        <div><b class="num">${teams}</b><span>Equipos</span></div>
+        <div><b class="num">${played.length}</b><span>Juegos jugados</span></div>
+        <div><b class="num">${TODAY_WEEK}</b><span>Semana</span></div>
+        <div><b>${published ? "Ahora" : lastPlayed ? fmtDay(lastPlayed) : "—"}</b><span>Último resultado</span></div>
       </div>
     </section>
-
     ${Object.values(TEAMS).flat().length ? "" : onboardingPanel()}
 
     <div class="strip-head">
@@ -864,25 +926,30 @@ function gameRow(g, showCat){
     score = `<span class="gscore none">${played || g.st === "NJ" ? "—" : "vs"}</span>`;
   }
 
+  const canEdit = !isLocked() && !isVisitor();
+  const sheetBtn = g.st === "F" && boxOf(g)
+    ? `<button class="linkbtn" data-game="${g.id}" aria-expanded="${openGame === g.id}">${openGame === g.id ? "Ocultar hoja de anotación" : "Ver hoja de anotación"}</button>` : "";
+  const acts = [];
   let st;
-  if (g.fresh){
-    st = `<span class="stp hoy">Recién capturado</span>
-      <button class="linkbtn" data-game="${g.id}" aria-expanded="${openGame === g.id}">${openGame === g.id ? "Ocultar" : "Ver"} hoja de anotación</button>`;
+  if (g.fresh && g.st === "F"){
+    st = `<span class="stp hoy">Recién capturado</span>${sheetBtn}`;
   } else if (g.st === "F"){
-    st = `<span class="stp">Final</span>${g.as == null ? `<small>Marcador sin capturar</small>` : ""}${
-      boxOf(g) ? `<button class="linkbtn" data-game="${g.id}" aria-expanded="${openGame === g.id}">${openGame === g.id ? "Ocultar" : "Ver"} hoja de anotación</button>` : ""}${
+    st = `<span class="stp">Final</span>${g.as == null ? `<small>Marcador sin capturar</small>` : ""}${sheetBtn}${
       g.baja ? `<small>${esc(g[g.baja])} se dio de baja · el resultado se conserva</small>` : ""}${
       g.rep ? `<a href="${esc(g.rep)}" target="_blank" rel="noopener">Ver repetición ↗</a>` : ""}`;
   } else if (g.st === "FF"){
     st = `<span class="stp ff">Forfit</span><small>${esc(g[g.ff])} no se presentó</small>`;
   } else if (g.st === "NJ"){
     st = `<span class="stp nj">No se jugó</span><small>${esc(g.why)} · por reprogramar</small>`;
-  } else if (g.d === TODAY){
-    st = `<span class="stp hoy">Hoy</span>${isLocked() || isVisitor() ? "" : `<button class="linkbtn" data-capture="${g.id}">Capturar resultado</button>`}`;
+  } else if (g.d <= TODAY){
+    st = g.d === TODAY ? `<span class="stp hoy">Hoy</span>` : `<span class="stp pend">Sin resultado</span>`;
+    if (canEdit) acts.push(`<button class="gact primary" data-capture="${g.id}">Capturar resultado</button>`);
   } else {
     st = `<span class="stp prog">Programado</span>`;
   }
   if (g.fixed && g.fixed.reason) st += `<small class="fixednote">Corregido: ${esc(g.fixed.reason)}</small>`;
+  if (canEdit && (isPlayed(g) || g.st === "NJ")) acts.push(`<button class="gact" data-fixgame="${g.id}">Corregir</button>`);
+  if (acts.length) st += `<span class="gacts">${acts.join("")}</span>`;
   const badge = showCat ? `<span class="catbadge">${esc(catName(g.c))}</span>` : "";
 
   return `<div class="game${g.st === "NJ" ? " nj" : ""}">
@@ -1349,13 +1416,23 @@ function fixLive(){
       <button class="btn primary" id="fix-save"${check.errors.length ? " disabled" : ""}>Guardar corrección</button>
     </div>`;
 }
-const refreshFix = () => { const box = document.getElementById("fix-live"); if (box) box.innerHTML = fixLive(); };
+const refreshFix = () => {
+  const box = document.getElementById("fix-live");
+  if (box) box.innerHTML = fixLive();
+  const g = fixGame();
+  if (!g) return;
+  const check = fixChecks(g, fixForm);
+  const st = document.getElementById("fb-status"), sc = document.getElementById("fb-score"), btn = document.querySelector("[data-fixsave]");
+  if (st) st.innerHTML = fixStatusHtml(check);
+  if (sc) sc.textContent = fixScore();
+  if (btn) btn.disabled = check.errors.length > 0;
+};
 
 function fixBoxPanel(g, f){
   if (!g || f.st !== "F") return "";
   const cur = boxOf(g);
   if (!f.box) return `<div class="panel">
-      <div class="panel-h"><h2 class="display">Box score</h2><span class="meta">${cur ? "Orden al bat y pitcheo de este juego" : "Este juego no tiene box score capturado"}</span></div>
+      <div class="panel-h"><h2 class="display"><span class="stepn">2</span>Box score</h2><span class="meta">${cur ? "Orden al bat y pitcheo de este juego" : "Este juego no tiene box score capturado"}</span></div>
       ${cur ? `<div class="sheet fixsheet">${boxTables(g, cur)}</div>`
         : `<p class="capnote fixnobox">Se capturó solo el marcador. Aquí puedes capturar el orden al bat y el pitcheo de los dos equipos.</p>`}
       <div class="savebar">
@@ -1367,8 +1444,8 @@ function fixBoxPanel(g, f){
   const S = f.box;
   return `<div class="panel">
       <div class="panel-h">
-        <h2 class="display">${cur ? "Corregir box score" : "Capturar box score"}</h2>
-        <div class="tabs">${["a", "b"].map(side => `<button class="tab" data-boxside="${side}" aria-pressed="${S.boxSide === side}">${esc(side === "a" ? g.a : g.b)}</button>`).join("")}</div>
+        <h2 class="display"><span class="stepn">2</span>${cur ? "Corregir box score" : "Capturar box score"}</h2>
+        <div class="tabs">${["a", "b"].map(side => `<button class="tab boxtab" data-boxside="${side}" aria-pressed="${S.boxSide === side}">${esc(side === "a" ? g.a : g.b)}${boxTabStatus(side)}</button>`).join("")}</div>
       </div>
       <div id="lineup">${lineupTable(S.boxSide)}</div>
       <div id="pitching">${pitchTable(S.boxSide)}</div>
@@ -1380,10 +1457,7 @@ function fixBoxPanel(g, f){
     </div>`;
 }
 
-const capModeTabs = () => `<div class="tabs">
-    <button class="tab" data-capmode="nuevo" aria-pressed="${capMode === "nuevo"}">Capturar juego</button>
-    <button class="tab" data-capmode="corregir" aria-pressed="${capMode === "corregir"}">Corregir resultado${corrections.length ? `<span class="n">${corrections.length}</span>` : ""}</button>
-  </div>`;
+const capModeTabs = () => "";   // Capturar y Corregir se eligen en la barra de herramientas del administrador
 
 function viewCorregir(){
   if (!fixForm) fixForm = defaultFixForm();
@@ -1407,7 +1481,7 @@ function viewCorregir(){
     <div class="cap-grid wide-capture">
       <div class="stack">
         <div class="panel">
-          <div class="panel-h"><h2 class="display">Juego a corregir</h2><span class="meta">Solo juegos que ya tienen resultado</span></div>
+          <div class="panel-h"><h2 class="display"><span class="stepn">1</span>Juego y resultado</h2><span class="meta">Solo juegos que ya tienen resultado</span></div>
           <div class="form-row">
             <div class="field wide"><label for="fix-week">Semana</label>
               <select id="fix-week">${weeks.map(w => {
@@ -1443,7 +1517,7 @@ function viewCorregir(){
 
         ${fixBoxPanel(g, f)}
         ${g && f.box && f.st === "F" ? `<div class="panel">
-          <div class="panel-h"><h2 class="display">Guardar corrección</h2><span class="meta">Resultado y box score</span></div>
+          <div class="panel-h"><h2 class="display"><span class="stepn">3</span>Revisar y guardar</h2><span class="meta">Resultado y box score</span></div>
           <div id="fix-live">${fixLive()}</div>
         </div>` : ""}
 
@@ -1463,23 +1537,38 @@ function viewCorregir(){
         </div>
       </div>
 
-      <div class="stack">
-        <div class="panel">
-          <div class="panel-h"><h2 class="display">Al corregir</h2></div>
-          <ul class="effects" style="list-style:none; margin:0; padding:0">
-            <li><span class="chk">✓</span><span>La <b>tabla de la categoría</b> se recalcula con el resultado nuevo.</span></li>
-            <li><span class="chk">✓</span><span>Antes de guardar se ve <b>cómo cambian el récord y el lugar</b> de los dos equipos.</span></li>
-            <li><span class="chk">✓</span><span>El <b>resultado anterior queda en el historial</b>, con motivo y fecha.</span></li>
-            <li><span class="chk">✓</span><span>El <b>box score</b> (bateo, cambios y pitcheo) también se corrige, o se captura si el juego solo tenía marcador.</span></li>
-            <li><span class="chk">✓</span><span>Si la corrección fue un error, <b>se revierte</b> con un clic.</span></li>
-          </ul>
-        </div>
-        <div class="note">
-          <span class="tag">Por qué</span>
-          <span>Un reclamo de marcador ya no se resuelve de memoria: queda escrito qué se cambió, cuándo y por qué.</span>
-        </div>
-      </div>
     </div>
+
+    <details class="howto">
+      <summary>¿Qué pasa al corregir?</summary>
+      <ul>
+        <li>La <b>tabla de la categoría</b> se recalcula y antes de guardar se ve cómo cambian el récord y el lugar de los dos equipos.</li>
+        <li>El <b>box score</b> (bateo, cambios y pitcheo) también se corrige, o se captura si el juego solo tenía marcador.</li>
+        <li>El <b>resultado anterior queda en el historial</b>, con motivo y fecha, y se puede revertir con un clic.</li>
+      </ul>
+    </details>
+    ${g ? fixBar(g) : ""}
+  </div>`;
+}
+
+/* Barra fija de Corregir: cómo queda el resultado, lo que falta y el botón de guardar. */
+const fixScore = () => {
+  const a = afterOf(fixForm);
+  if (a.st === "NJ") return "No se jugó";
+  const n = v => Number.isInteger(v) ? v : "–";
+  return `${n(a.as)}–${n(a.bs)}${a.st === "FF" ? " · forfit" : ""}`;
+};
+function fixStatusHtml(check){
+  if (check.errors.length) return `<button class="cb-issue err" data-jump="fix-live">${plural(check.errors.length, "pendiente", "pendientes")} antes de guardar</button>`;
+  if (check.warnings.length) return `<button class="cb-issue warn" data-jump="fix-live">Se puede guardar · ${plural(check.warnings.length, "aviso", "avisos")}</button>`;
+  return `<span class="cb-issue ok">✓ Listo para guardar</span>`;
+}
+function fixBar(g){
+  const check = fixChecks(g, fixForm);
+  return `<div class="capbar" role="region" aria-label="Guardar la corrección">
+    <span class="cb-game">${crest(g.a)}<b>${esc(g.a)}</b><span class="cb-score num" id="fb-score">${esc(fixScore())}</span><b>${esc(g.b)}</b>${crest(g.b)}</span>
+    <span class="cb-status" id="fb-status">${fixStatusHtml(check)}</span>
+    <span class="cb-acts"><button class="btn primary" data-fixsave${check.errors.length ? " disabled" : ""}>Guardar corrección</button></span>
   </div>`;
 }
 
@@ -2353,6 +2442,33 @@ const capTotals = () => ({
   h: capState.h.reduce((x,v) => x + (+v || 0), 0),
 });
 
+/* Barra fija de la captura: el marcador, lo que falta y el botón de publicar, siempre a la vista. */
+function capBar(){
+  const g = captureGame();
+  if (!g) return "";
+  const t = capTotals();
+  return `<div class="capbar" role="region" aria-label="Publicar el juego">
+    <span class="cb-game">${crest(g.a)}<b>${esc(g.a)}</b><span class="cb-score num"><span id="cb-a">${t.a}</span>–<span id="cb-h">${t.h}</span></span><b>${esc(g.b)}</b>${crest(g.b)}</span>
+    <span class="cb-status" id="cb-status">${capStatusHtml()}</span>
+    <span class="cb-acts"><button class="btn primary" id="save"${captureErrors().length ? " disabled" : ""}>Guardar y publicar</button></span>
+  </div>`;
+}
+function capStatusHtml(){
+  const { errors, warnings } = captureChecks();
+  if (errors.length) return `<button class="cb-issue err" data-jump="lineup-checks">${plural(errors.length, "error", "errores")} por corregir</button>`;
+  if (warnings.length) return `<button class="cb-issue warn" data-jump="lineup-checks">Se puede publicar · ${plural(warnings.length, "aviso", "avisos")}</button>`;
+  return `<span class="cb-issue ok">✓ Listo para publicar</span>`;
+}
+/* Estado de cada equipo en su pestaña: listo, avisos o errores. */
+function boxTabStatus(side){
+  const S = bx(), team = side === "a" ? S.away : S.home;
+  if (!team) return "";
+  const { errors, warnings } = captureChecks();
+  const mine = m => m.startsWith(team) || m.includes(`(${team})`);
+  const e = errors.filter(mine).length, w = warnings.filter(mine).length;
+  return `<span class="tabst ${e ? "err" : w ? "warn" : "ok"}" data-boxstatus="${side}" title="${e ? plural(e, "error", "errores") : w ? plural(w, "aviso", "avisos") : "Completo"}">${e || (w ? "!" : "✓")}</span>`;
+}
+
 function viewCapturar(){
   if (capMode === "corregir") return viewCorregir();
   const capGame = captureGame();
@@ -2363,7 +2479,7 @@ function viewCapturar(){
     <div class="page-head">
       <div>
         <p class="eyebrow">Administrador · acceso restringido</p>
-        <h1>Capturar juego</h1>
+        <h1>Capturar resultado</h1>
         <p class="sub">Una sola captura por juego. La tabla, los líderes, el récord de cada equipo y el sitio de cada club se actualizan solos.</p>
       </div>
       <div class="headacts">${capModeTabs()}${published ? `<button class="btn ghost" id="reset">↺ Reiniciar demo</button>` : ""}</div>
@@ -2372,7 +2488,7 @@ function viewCapturar(){
     <div class="cap-grid wide-capture">
       <div class="stack">
         <div class="panel">
-          <div class="panel-h"><h2 class="display">Juego a capturar</h2><span class="meta">Solo aparecen los juegos programados de la semana</span></div>
+          <div class="panel-h"><h2 class="display"><span class="stepn">1</span>Juego</h2><span class="meta">Solo aparecen los juegos programados de la semana</span></div>
           <div class="form-row">
             <div class="field wide"><label for="sel-week">Semana</label>
               <select id="sel-week">${Array.from({ length: calWeeks() }, (_, i) => i + 1).map(w => {
@@ -2394,7 +2510,7 @@ function viewCapturar(){
         </div>
 
         <div class="panel">
-          <div class="panel-h"><h2 class="display">Carreras por entrada</h2><span class="meta">El total se suma solo</span></div>
+          <div class="panel-h"><h2 class="display"><span class="stepn">2</span>Carreras por entrada</h2><span class="meta">El total se suma solo</span></div>
           <div class="tablewrap" style="padding:14px 16px">
             <table class="line">
               <thead><tr><th class="l">Equipo</th>
@@ -2414,43 +2530,31 @@ function viewCapturar(){
 
         <div class="panel">
           <div class="panel-h">
-            <h2 class="display">Orden al bat y pitcheo</h2>
+            <h2 class="display"><span class="stepn">3</span>Bateo y pitcheo de cada equipo</h2>
             <div class="tabs">
               ${["a", "b"].map(side => {
                 const team = side === "a" ? capState.away : capState.home;
-                return team ? `<button class="tab" data-boxside="${side}" aria-pressed="${capState.boxSide === side}">${esc(team)}</button>` : "";
+                return team ? `<button class="tab boxtab" data-boxside="${side}" aria-pressed="${capState.boxSide === side}">${esc(team)}${boxTabStatus(side)}</button>` : "";
               }).join("")}
             </div>
           </div>
           <div id="lineup">${lineupTable(capState.boxSide)}</div>
           <div id="pitching">${pitchTable(capState.boxSide)}</div>
           <ul class="checks lineupchecks" id="lineup-checks" aria-live="polite">${lineupChecksHtml()}</ul>
-          <div class="savebar">
-            <span class="hint">Después de guardar, el sitio público muestra el juego al instante.</span>
-            ${published
-              ? `<span style="color:var(--pos); font-weight:600; font-size:13.5px">✓ Juego publicado</span>`
-              : `<button class="btn">Guardar borrador</button><button class="btn primary" id="save"${capGame && !captureErrors().length ? "" : " disabled"}>Guardar y publicar</button>`}
-          </div>
-        </div>
-      </div>
-
-      <div class="stack">
-        <div class="panel">
-          <div class="panel-h"><h2 class="display">Al guardar</h2></div>
-          <ul class="effects" style="list-style:none; margin:0; padding:0">
-            <li><span class="chk">✓</span><span>La <b>tabla de posiciones</b> se recalcula con el criterio de desempate de la liga.</span></li>
-            <li><span class="chk">✓</span><span>El <b>récord y la diferencia de carreras</b> de los dos equipos se actualizan.</span></li>
-            <li><span class="chk">✓</span><span>Los <b>líderes de bateo y pitcheo</b> suman este juego.</span></li>
-            <li><span class="chk">✓</span><span>Las <b>estadísticas de cada jugador</b> quedan en su ficha, temporada por temporada.</span></li>
-            <li><span class="chk">✓</span><span>El <b>sitio de cada equipo</b> lee la tabla nueva sin que nadie la copie.</span></li>
-          </ul>
-        </div>
-        <div class="note">
-          <span class="tag">Hoy</span>
-          <span>La tabla se arma a mano en una hoja, se toma foto y se manda al grupo. Si alguien reclama un marcador, no hay a qué regresar. <b>Aquí cada juego queda guardado con quién lo capturó y cuándo.</b></span>
         </div>
       </div>
     </div>
+
+    <details class="howto">
+      <summary>¿Qué pasa al guardar?</summary>
+      <ul>
+        <li>La <b>tabla de posiciones</b> se recalcula con el criterio de desempate de la liga.</li>
+        <li>El <b>récord y la diferencia de carreras</b> de los dos equipos se actualizan.</li>
+        <li>Las <b>estadísticas de cada jugador</b> quedan en su ficha, y el juego aparece con su hoja de anotación en el calendario.</li>
+        <li>Si algo quedó mal, se arregla después en <b>Corregir resultado</b>.</li>
+      </ul>
+    </details>
+    ${capBar()}
   </div>`;
 }
 
@@ -2502,6 +2606,11 @@ function recalcCapture(){
   if (checks) checks.innerHTML = lineupChecksHtml();
   const save = document.getElementById("save");
   if (save) save.disabled = !captureGame() || captureErrors().length > 0;
+  const cbA = document.getElementById("cb-a"), cbH = document.getElementById("cb-h"), cbS = document.getElementById("cb-status");
+  if (cbA) cbA.textContent = t.a;
+  if (cbH) cbH.textContent = t.h;
+  if (cbS) cbS.innerHTML = capStatusHtml();
+  document.querySelectorAll("[data-boxstatus]").forEach(el => { el.outerHTML = boxTabStatus(el.dataset.boxstatus); });
   if (capMode === "corregir") refreshFix();
 }
 
@@ -2566,7 +2675,10 @@ function restoreLeagueData(){
   replaceObj(TEAM_LOGOS, demo ? demo.LOGOS : {});
   replaceArr(ERA_LEADERS, demo ? demo.ERA : []);
   replaceObj(RIVAL_LEADERS, demo ? demo.RIVALS : { avg: [], CP: [], HR: [] });
-  Object.assign(LEAGUE, demo ? demo.LEAGUE : { name: "Mi liga", season: "1", year: TODAY.slice(0, 4) });
+  Object.assign(LEAGUE, demo ? demo.LEAGUE : { name: "Mi liga", sport: "", season: "1", year: TODAY.slice(0, 4) });
+  delete LEAGUE.logo;
+  applyAccent("vino");
+  brandForm = null;
   CATEGORIES.forEach(c => { c.teams = TEAMS[c.id].length; c.active = c.teams > 0; });
   STATS_TEAM = "Caimanes de Villas";
   SEASON.games = SEASON_DEFAULT.games;
@@ -2575,18 +2687,19 @@ function restoreLeagueData(){
   teamForm = null;
   openTeam = null;
 }
-const leagueLogo = () => appMode === "demo" ? LOGO : "";
+/* LEAGUE.logo es el que se sube en Personalización ("" = sin logo); si no hay, el de la demo. */
+const leagueLogo = () => LEAGUE.logo !== undefined ? LEAGUE.logo : appMode === "demo" ? LOGO : "";
 
 /* Cuentas de las ligas con STRIKEOUT. Valle Alto y "Mi liga" son las que se abren aquí;
    las demás son de ejemplo para el panel master. */
 let accounts = [
-  { id: "valle-alto", name: "Liga Valle Alto", note: "Demo", admin: "Administrador de la liga", plan: "Mensual", paidUntil: "2026-10-14", blocked: false },
+  { id: "valle-alto", name: "Liga Valle Alto Softbol", note: "Demo", admin: "Administrador de la liga", plan: "Mensual", paidUntil: "2026-10-14", blocked: false },
   { id: "mi-liga", name: "Mi liga", note: "App vacía", admin: "Por asignar", plan: "Prueba", paidUntil: "2026-09-28", blocked: false },
   { id: "ejemplo-norte", name: "Liga Nocturna del Norte", note: "Ejemplo", admin: "Administrador de ejemplo", plan: "Mensual", paidUntil: "2026-09-01", blocked: true },
   { id: "ejemplo-palmas", name: "Liga Dominical Las Palmas", note: "Ejemplo", admin: "Administradora de ejemplo", plan: "Mensual", paidUntil: "2026-09-19", blocked: false },
   { id: "ejemplo-empresarial", name: "Liga Empresarial del Valle", note: "Ejemplo", admin: "Administrador de ejemplo", plan: "Anual", paidUntil: "2026-08-30", blocked: false },
 ];
-const ADMIN_SCREENS = ["capturar", "inscripciones", "programar", "admequipos", "temporada"];
+const ADMIN_SCREENS = ["admin", "capturar", "inscripciones", "programar", "admequipos", "temporada", "personalizar"];
 /* En la demo se puede ver la liga como administrador o como visitante (equipos y público):
    el visitante no ve las pantallas ni los botones del administrador. */
 let viewer = "admin";
@@ -2635,27 +2748,104 @@ function bootRoute(){
   applyRoute(h);
 }
 
-/* Textos de la barra lateral y el aviso superior según la liga y su acceso. */
+/* Barra de demo, navbar y footer del sitio de la liga. */
 function renderChrome(){
   const demo = appMode === "demo";
-  const tag = document.querySelector(".banner b"), text = document.querySelector(".banner span");
-  if (tag) tag.textContent = demo ? "Prototipo" : "Liga nueva";
-  if (text) text.textContent = demo
-    ? "Los nombres de los equipos de Novatos y Avanzados, el logo de la liga y el roster y el manager de Caimanes de Villas son reales. Los equipos de Femenil, los demás managers y rosters, los pagos de inscripción, el calendario, los resultados y las estadísticas son de ejemplo."
-    : "Así arranca STRIKEOUT para una liga nueva: sin equipos, sin juegos y sin resultados. Lo que captures aquí dura mientras la página esté abierta.";
-  const val = document.querySelector(".leaguepick .val");
-  if (val) val.innerHTML = `${esc(LEAGUE.name.replace(/^Liga /, ""))} <span>Temporada ${esc(LEAGUE.season)} ▾</span>`;
-  const role = document.querySelector(".rolechip");
-  if (role){
-    role.innerHTML = `<span class="dot"></span> ${isVisitor() ? "Visitante · solo lectura" : isLocked() ? "Edición bloqueada" : "Administrador"}`;
-    role.classList.toggle("visitor", isVisitor());
+  const setText = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  document.title = leagueFull();
+  document.querySelector(".shell").classList.toggle("locked", isLocked());
+  const logo = document.getElementById("brand-logo");
+  const logoKey = leagueLogo() ? `img-${leagueLogo().length}-${leagueLogo().slice(-32)}` : "none";
+  if (logo && logo.dataset.key !== logoKey){
+    logo.dataset.key = logoKey;
+    logo.innerHTML = leagueLogo() ? `<img src="${leagueLogo()}" alt="">` : `<i class="fa-solid fa-baseball-bat-ball" aria-hidden="true"></i>`;
   }
+  setText("brand-l1", LEAGUE.name);
+  setText("brand-l2", [LEAGUE.sport, `Temporada ${LEAGUE.season}`].filter(Boolean).join(" · "));
+  const bar = document.getElementById("demobar");
+  if (bar) bar.hidden = false;
+  setText("demotag", demo ? "Demo" : "Liga nueva");
+  setText("demotext", demo
+    ? (isVisitor() ? "Así ven el sitio los equipos y el público." : isLocked() ? "Edición bloqueada: la liga tiene un pago pendiente." : "Prototipo de STRIKEOUT con datos de ejemplo.")
+    : "Sin equipos, juegos ni resultados: lo que captures dura mientras la página esté abierta.");
   const viewAs = document.getElementById("viewas");
   if (viewAs){
-    viewAs.hidden = appMode !== "demo";
+    viewAs.hidden = !demo;
     viewAs.querySelectorAll("[data-viewas]").forEach(b => b.setAttribute("aria-checked", String(b.dataset.viewas === viewer)));
   }
-  document.querySelector(".shell").classList.toggle("locked", isLocked());
+  renderFooter();
+}
+
+function renderFooter(){
+  const foot = document.getElementById("sitefoot");
+  if (!foot) return;
+  const key = [appMode, leagueFull(), LEAGUE.season, viewer, isLocked(), leagueLogo().length, leagueLogo().slice(-32)].join("|");
+  if (foot.dataset.key === key) return;
+  foot.dataset.key = key;
+  foot.innerHTML = `<div class="foot-in">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <span class="brand-logo">${leagueLogo() ? `<img src="${leagueLogo()}" alt="">` : `<i class="fa-solid fa-baseball-bat-ball" aria-hidden="true"></i>`}</span>
+        <span class="brand-name"><b>${esc(leagueFull())}</b><small>Temporada ${esc(LEAGUE.season)} · ${esc(LEAGUE.year)}</small></span>
+      </div>
+      <nav class="foot-links" aria-label="Secciones del sitio">
+        ${SCREENS.map(s => `<button type="button" data-go="${s.id}">${s.label}</button>`).join("")}
+        ${isVisitor() ? "" : `<button type="button" data-go="admin">Ajustes de administrador</button>`}
+      </nav>
+    </div>
+    ${appMode === "demo" ? `<p class="foot-note">Los nombres de los equipos de Novatos y Avanzados, el logo de la liga y el roster y el manager de Caimanes de Villas son reales. Los equipos de Femenil, los demás managers y rosters, los pagos de inscripción, el calendario, los resultados y las estadísticas son de ejemplo.</p>` : ""}
+    <div class="foot-bottom">
+      <span>© ${esc(LEAGUE.year)} ${esc(leagueFull())}</span>
+      <span class="powered">Powered by <b class="somark">STRIKE<span>OUT</span></b></span>
+    </div>
+  </div>`;
+}
+
+/* Barra de herramientas dentro del área de administración. */
+function adminBar(){
+  return `<nav class="adminbar" aria-label="Herramientas del administrador">
+    <button type="button" class="adminbar-home" data-go="admin"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Ajustes</span></button>
+    <div class="adminbar-tabs">${ADMIN_TOOLS.map(t => `<button type="button" class="admtab" data-go="${t.id}" aria-current="${navCurrent(t.id)}"><i class="fa-solid ${t.icon}" aria-hidden="true"></i><span>${t.label}</span></button>`).join("")}</div>
+  </nav>`;
+}
+
+/* Ajustes de administrador: lo pendiente y una tarjeta por herramienta. */
+function viewAdmin(){
+  const teams = Object.values(TEAMS).flat();
+  const due = calGames().filter(g => g.st === "P" && g.d <= TODAY).length;
+  const left = CATEGORIES.reduce((n, c) => {
+    const t = (TEAMS[c.id] || []).length;
+    return t < 2 ? n : n + Math.max(0, t * SEASON.games / 2 - calGames().filter(g => g.c === c.id && g.st !== "NJ").length);
+  }, 0);
+  const owe = teams.filter(blockedByDues).length;
+  const badge = {
+    programar: left ? `${left} por programar` : "",
+    capturar: due ? `${due} por capturar` : "",
+    corregir: corrections.length ? plural(corrections.length, "corrección", "correcciones") : "",
+    admequipos: plural(teams.length, "equipo", "equipos"),
+    inscripciones: owe ? `${owe} sin pagar` : teams.length ? "Al corriente" : "",
+    temporada: `${SEASON.games} juegos`,
+    personalizar: (ACCENTS.find(x => x.id === accentId) || ACCENTS[0]).name,
+  };
+  return `<div class="screen">
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <h1>Ajustes de administrador</h1>
+        <p class="sub">Todo lo que la liga necesita para llevar la temporada: el rol de juegos, los resultados, los equipos y las inscripciones.</p>
+      </div>
+      <button class="btn ghost" id="reset"><i class="fa-solid fa-rotate" aria-hidden="true"></i> Reiniciar ${appMode === "demo" ? "demo" : "liga"}</button>
+    </div>
+    ${teams.length ? adminTodo() : onboardingPanel()}
+    <p class="section-label">Herramientas</p>
+    <div class="toolgrid">${ADMIN_TOOLS.map(t => `<button type="button" class="toolcard" data-go="${t.id}">
+      <span class="ti"><i class="fa-solid ${t.icon}" aria-hidden="true"></i></span>
+      ${badge[t.id] ? `<span class="tb">${esc(badge[t.id])}</span>` : ""}
+      <span class="tt">${t.label}</span>
+      <span class="td">${t.desc}</span>
+      <span class="go">Abrir <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+    </button>`).join("")}</div>
+  </div>`;
 }
 
 function viewLanding(){
@@ -3035,11 +3225,159 @@ function applyTheme(mode){
   const btn = document.getElementById("theme");
   if (btn){
     btn.setAttribute("aria-pressed", String(dark));
-    document.getElementById("theme-icon").innerHTML = dark ? SUN : MOON;
+    document.getElementById("theme-icon").innerHTML = `<i class="fa-solid ${dark ? "fa-sun" : "fa-moon"}" aria-hidden="true"></i>`;
+    btn.title = dark ? "Cambiar a tema claro" : "Cambiar a tema oscuro";
     document.getElementById("theme-label").textContent = dark ? "Tema claro" : "Tema oscuro";
   }
   try { localStorage.setItem("strikeout-theme", mode); } catch (e) { /* modo privado */ }
 }
+
+/* ---------------- personalización: logo, nombre y color ---------------- */
+/* Cada color trae sus tonos para tema claro y oscuro, y los que se usan sobre fondos oscuros
+   (navbar, portada, barra de demo). Amarillo lleva texto oscuro encima para que se lea. */
+const ACCENTS = [
+  { id:"vino",     name:"Vino",     note:"Color actual", accent:"#991733", rgb:"153,23,51", ink:"#991733", inkDark:"#E36A85", tint:"#F8E4E9", tintDark:"#2B0E16", on:"#FFF2F5", soft:"#F0B9C6", deep:"#2A0B13", deepInk:"#F3D6DD" },
+  { id:"rojo",     name:"Rojo",     accent:"#C8102E", rgb:"200,16,46",  ink:"#B00E28", inkDark:"#FF6B7F", tint:"#FCE3E6", tintDark:"#300A10", on:"#FFFFFF", soft:"#FFB3BD", deep:"#33070E", deepInk:"#FFD9DE" },
+  { id:"azul",     name:"Azul",     accent:"#1D4ED8", rgb:"29,78,216",  ink:"#1D4ED8", inkDark:"#8AB0FF", tint:"#E3EBFD", tintDark:"#0E1A3A", on:"#FFFFFF", soft:"#B7CBFF", deep:"#0B1633", deepInk:"#D6E1FF" },
+  { id:"amarillo", name:"Amarillo", accent:"#EAB308", rgb:"234,179,8",  ink:"#8A6400", inkDark:"#F5C94A", tint:"#FDF4D3", tintDark:"#2E2505", on:"#1A1400", soft:"#F7D774", deep:"#2B2204", deepInk:"#FBEBB5" },
+  { id:"verde",    name:"Verde",    accent:"#15803D", rgb:"21,128,61",  ink:"#15803D", inkDark:"#4ADE80", tint:"#DCF3E4", tintDark:"#0B2616", on:"#FFFFFF", soft:"#A7F0C0", deep:"#06220F", deepInk:"#CFF5DC" },
+];
+let accentId = "vino";
+let brandForm = null;            // personalización en curso, sin guardar
+
+const accentVars = (a, dark) => `--accent:${a.accent}; --accent-rgb:${a.rgb}; --accent-ink:${dark ? a.inkDark : a.ink}; `
+  + `--accent-tint:${dark ? a.tintDark : a.tint}; --on-accent:${a.on}; --pos:${dark ? a.inkDark : a.ink}; --pos-tint:${dark ? a.tintDark : a.tint}; `
+  + `--accent-bright:${a.inkDark}; --accent-soft:${a.soft}; --accent-deep:${a.deep}; --accent-deep-ink:${a.deepInk};`;
+
+function applyAccent(id){
+  const a = ACCENTS.find(x => x.id === id) || ACCENTS[0];
+  accentId = a.id;
+  let el = document.getElementById("accent-style");
+  if (!el){ el = document.createElement("style"); el.id = "accent-style"; document.head.appendChild(el); }
+  el.textContent = `:root{${accentVars(a, false)}} :root[data-theme="dark"]{${accentVars(a, true)}}`;
+}
+
+function brandState(f){
+  const errors = normName(f.name) ? [] : ["Escribe el nombre de la liga."];
+  const changed = normName(f.name) !== LEAGUE.name || normName(f.sport) !== (LEAGUE.sport || "")
+    || f.logo !== leagueLogo() || f.accent !== accentId;
+  const hint = errors.length ? errors[0] : changed ? "Hay cambios sin guardar: se aplican a todo el sitio al guardar." : "Sin cambios por guardar.";
+  return { errors, changed, hint };
+}
+
+function viewPersonalizar(){
+  if (!brandForm) brandForm = { name: LEAGUE.name, sport: LEAGUE.sport || "", logo: leagueLogo(), accent: accentId };
+  const f = brandForm;
+  const a = ACCENTS.find(x => x.id === f.accent) || ACCENTS[0];
+  const st = brandState(f);
+  const logoImg = f.logo ? `<img src="${f.logo}" alt="">` : `<i class="fa-solid fa-baseball-bat-ball" aria-hidden="true"></i>`;
+  const sub = [normName(f.sport), `Temporada ${LEAGUE.season}`].filter(Boolean).join(" · ");
+  const full = [normName(f.name), normName(f.sport)].filter(Boolean).join(" ") || "Nombre de la liga";
+  return `<div class="screen">
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">${esc(leagueFull())} · Administrador</p>
+        <h1>Personalización</h1>
+        <p class="sub">El logo, el nombre y el color de la liga. Al guardar se aplican a todo el sitio: navbar, portada, botones y footer.</p>
+      </div>
+    </div>
+
+    <div class="brandgrid">
+      <div class="stack">
+        <section class="panel">
+          <div class="panel-h"><h2 class="display"><span class="stepn">1</span>Logo</h2><span class="meta">PNG, JPG o WebP de máximo 1 MB</span></div>
+          <div class="logoedit brandlogo">
+            <span class="brandlogo-prev">${logoImg}</span>
+            <div class="logoacts">
+              <label class="btn" for="bf-logo"><i class="fa-solid fa-upload" aria-hidden="true"></i> ${f.logo ? "Cambiar logo" : "Subir logo"}</label>
+              <input type="file" id="bf-logo" accept="image/png,image/jpeg,image/webp" hidden>
+              ${f.logo ? `<button type="button" class="btn ghost" data-bflogoremove>Quitar logo</button>` : ""}
+              <small class="fieldnote">Se muestra en círculo: funciona mejor un logo cuadrado, con fondo blanco o transparente.</small>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-h"><h2 class="display"><span class="stepn">2</span>Nombre</h2><span class="meta">Navbar, portada, footer y pestaña del navegador</span></div>
+          <div class="form-row">
+            <div class="field wide"><label for="bf-name">Nombre de la liga</label>
+              <input type="text" id="bf-name" maxlength="40" value="${esc(f.name)}" placeholder="Ej. Liga Valle Alto"></div>
+            <div class="field wide"><label for="bf-sport">Deporte o complemento</label>
+              <input type="text" id="bf-sport" maxlength="24" value="${esc(f.sport)}" placeholder="Ej. Softbol"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-h"><h2 class="display"><span class="stepn">3</span>Color</h2><span class="meta">Color de acento del sitio</span></div>
+          <div class="swatches" role="radiogroup" aria-label="Color de acento">
+            ${ACCENTS.map(x => `<button type="button" class="swatch" role="radio" aria-checked="${x.id === f.accent}" data-bfaccent="${x.id}" style="--sw:${x.accent}; --sw-on:${x.on}">
+              <span class="chip"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+              <span class="sn">${x.name}</span>${x.note ? `<small>${x.note}</small>` : ""}
+            </button>`).join("")}
+          </div>
+        </section>
+      </div>
+
+      <div class="stack brandside">
+        <section class="panel">
+          <div class="panel-h"><h2 class="display">Vista previa</h2><span class="meta">${a.name}</span></div>
+          <div class="brandprev" style="${accentVars(a, document.documentElement.dataset.theme === "dark")}">
+            <div class="bp-nav">
+              <span class="brand-logo">${logoImg}</span>
+              <span class="brand-name"><b id="bp-name">${esc(normName(f.name) || "Nombre de la liga")}</b><small id="bp-sub">${esc(sub)}</small></span>
+              <span class="bp-admin"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Ajustes</span>
+            </div>
+            <div class="bp-hero">
+              <div class="hero2-bg" aria-hidden="true"></div>
+              <p class="hero2-kicker"><i class="fa-solid fa-baseball" aria-hidden="true"></i> Temporada ${esc(LEAGUE.season)} · ${esc(LEAGUE.year)}</p>
+              <b class="bp-title" id="bp-full">${esc(full)}</b>
+              <span class="btn cta"><i class="fa-solid fa-ranking-star" aria-hidden="true"></i> Ver standing</span>
+            </div>
+            <div class="bp-light">
+              <span class="tab" aria-pressed="true">Novatos</span>
+              <span class="tab">Femenil</span>
+              <span class="pstag in">Clasificado</span>
+              <span class="btn primary">Guardar y publicar</span>
+            </div>
+          </div>
+          <div class="savebar">
+            <span class="hint" id="bf-hint">${esc(st.hint)}</span>
+            <button type="button" class="btn ghost" data-bfreset${st.changed ? "" : " disabled"}>Descartar</button>
+            <button type="button" class="btn primary" id="bf-save"${st.changed && !st.errors.length ? "" : " disabled"}>Guardar personalización</button>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* Mientras se escribe el nombre: actualiza la vista previa y el botón sin redibujar los campos. */
+function refreshBrand(){
+  const f = brandForm;
+  if (!f) return;
+  const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  set("bp-name", normName(f.name) || "Nombre de la liga");
+  set("bp-sub", [normName(f.sport), `Temporada ${LEAGUE.season}`].filter(Boolean).join(" · "));
+  set("bp-full", [normName(f.name), normName(f.sport)].filter(Boolean).join(" ") || "Nombre de la liga");
+  const st = brandState(f);
+  set("bf-hint", st.hint);
+  const save = document.getElementById("bf-save"), reset = document.querySelector("[data-bfreset]");
+  if (save) save.disabled = !st.changed || st.errors.length > 0;
+  if (reset) reset.disabled = !st.changed;
+}
+
+function saveBrand(){
+  const f = brandForm;
+  if (!f || brandState(f).errors.length) return;
+  LEAGUE.name = normName(f.name);
+  LEAGUE.sport = normName(f.sport);
+  LEAGUE.logo = f.logo || "";
+  applyAccent(f.accent);
+  brandForm = null;
+  render();
+  toast(`Personalización guardada: ${leagueFull()} ya se ve así en todo el sitio`);
+}
+applyAccent("vino");
 
 /* Claro por defecto: solo se arranca en oscuro si el usuario ya lo eligió antes. */
 function initTheme(){
@@ -3072,6 +3410,20 @@ document.addEventListener("click", e => {
       : "Vista de administrador: con las pantallas del administrador");
   }
   if (e.target.closest("#to-landing")) return openRoute("inicio");
+  const bfAccent = e.target.closest("[data-bfaccent]");
+  if (bfAccent && brandForm){ brandForm.accent = bfAccent.dataset.bfaccent; return render(); }
+  if (e.target.closest("[data-bflogoremove]") && brandForm){ brandForm.logo = ""; return render(); }
+  if (e.target.closest("[data-bfreset]")){ brandForm = null; return render(); }
+  if (e.target.closest("#bf-save")) return saveBrand();
+
+  const menuBtn = e.target.closest("#menu-toggle");
+  if (menuBtn){
+    const bar = document.querySelector(".topbar");
+    const open = !bar.classList.contains("open");
+    bar.classList.toggle("open", open);
+    menuBtn.setAttribute("aria-expanded", String(open));
+    return;
+  }
 
   const paidBtn = e.target.closest("[data-paidleague]");
   if (paidBtn){
@@ -3131,6 +3483,21 @@ document.addEventListener("click", e => {
   const gm = e.target.closest("[data-game]");
   if (gm){ openGame = openGame === gm.dataset.game ? null : gm.dataset.game; return render(); }
 
+  const jump = e.target.closest("[data-jump]");
+  if (jump){
+    const target = document.getElementById(jump.dataset.jump);
+    if (target) target.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
+
+  const fixGameBtn = e.target.closest("[data-fixgame]");
+  if (fixGameBtn){
+    const g = calGames().find(x => x.id === fixGameBtn.dataset.fixgame);
+    if (!g) return;
+    fixForm = fixFormFor(g);
+    return go("corregir");
+  }
+
   const capBtn = e.target.closest("[data-capture]");
   if (capBtn){
     capMode = "nuevo";
@@ -3145,7 +3512,7 @@ document.addEventListener("click", e => {
     return render();
   }
 
-  if (e.target.closest("#fix-save")){
+  if (e.target.closest("#fix-save, [data-fixsave]")){
     const g = fixGame();
     if (!g || fixChecks(g, fixForm).errors.length) return;
     const cur = boxOf(g);
@@ -3395,6 +3762,10 @@ document.addEventListener("click", e => {
 });
 
 document.addEventListener("input", e => {
+  if ((e.target.id === "bf-name" || e.target.id === "bf-sport") && brandForm){
+    brandForm[e.target.id === "bf-name" ? "name" : "sport"] = e.target.value;
+    return refreshBrand();
+  }
   if (e.target.id === "tf-name"){ teamForm.name = e.target.value; return refreshTeamChecks(); }
   if (e.target.id === "tf-mgrname"){ teamForm.mgrName = e.target.value; return refreshTeamChecks(); }
   if (e.target.id === "fix-as" || e.target.id === "fix-bs"){
@@ -3443,6 +3814,16 @@ document.addEventListener("change", e => {
   }
   if (e.target.id === "tf-cat"){ teamForm.cat = e.target.value; return render(); }
   if (e.target.id === "tf-mgrplayer"){ teamForm.mgrPlayer = e.target.value; return render(); }
+  if (e.target.id === "bf-logo"){
+    const file = e.target.files && e.target.files[0];
+    if (!file || !brandForm) return;
+    if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return toast("El logo tiene que ser PNG, JPG o WebP");
+    if (file.size > 1024 * 1024) return toast("El logo pesa más de 1 MB");
+    const reader = new FileReader();
+    reader.onload = () => { brandForm.logo = reader.result; render(); };
+    reader.readAsDataURL(file);
+    return;
+  }
   if (e.target.id === "tf-logo"){
     const file = e.target.files && e.target.files[0];
     if (!file) return;
