@@ -2125,6 +2125,44 @@ img.logo-dark{background:#11121c}
   .so-login-brand .so-word{font-size:44px}
 }
 .demolink .somark.inline{letter-spacing:.02em}
+
+/* ---------- playoffs: iniciales centradas en el escudo ----------
+   .po-name > span y .po-champ-team b son para el nombre; el escudo también es span con <b>. */
+.po-name > .crest{display:grid; place-items:center; flex-direction:initial; overflow:visible; white-space:normal}
+.po-champ-team .crest b{font-family:"Archivo",sans-serif; font-variation-settings:"wdth" 112; font-weight:900; font-size:inherit; line-height:1; margin-top:-.18em}
+
+/* ---------- liga sin campos ni categorías: sin listas vacías ---------- */
+.tadmlist:empty{display:none}
+
+/* ---------- barra de administración: un menú por grupo, sin scroll ---------- */
+.adminbar{overflow:visible; flex-wrap:wrap; position:relative; z-index:25}
+.adminbar-groups{display:flex; flex-wrap:wrap; align-items:center; gap:4px; flex:1 1 auto; min-width:0}
+.admgrp{position:relative}
+.admgrp-btn{display:flex; align-items:center; gap:8px; padding:9px 12px; border:0; border-radius:8px; background:none; color:var(--ink-2); font:inherit; font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer}
+.admgrp-btn i{color:var(--ink-3)}
+.admgrp-btn .caret{font-size:10px; margin-left:2px; transition:transform .15s ease}
+.admgrp-btn:hover{background:var(--ground); color:var(--ink)}
+.admgrp.current .admgrp-btn{background:var(--accent-tint); color:var(--accent-ink); font-weight:600}
+.admgrp.current .admgrp-btn i{color:var(--accent-ink)}
+.admgrp.open .admgrp-btn{background:var(--ground); color:var(--ink)}
+.admgrp.open .caret{transform:rotate(180deg)}
+.admgrp-menu{display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:40; min-width:240px; padding:6px; flex-direction:column; gap:2px; border-radius:12px; background:var(--raised); border:1px solid var(--line); box-shadow:0 18px 40px -18px rgba(0,0,0,.45)}
+.admgrp.open .admgrp-menu{display:flex}
+.admgrp:nth-last-child(-n+2) .admgrp-menu{left:auto; right:0}
+.admgrp-menu .admtab{width:100%; justify-content:flex-start}
+.admgrp-title{display:none; margin:4px 8px 6px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3)}
+@media (max-width:640px){
+  .adminbar{flex-wrap:nowrap; gap:4px}
+  .adminbar-home span, .admgrp-btn span{display:none}
+  .adminbar-groups{flex-wrap:nowrap; justify-content:space-between; gap:2px}
+  .admgrp{position:static}
+  .admgrp-btn{gap:5px; padding:10px 9px}
+  .admgrp-menu, .admgrp:nth-last-child(-n+2) .admgrp-menu{left:0; right:0; min-width:0}
+  .admgrp-title{display:block}
+}
+
+/* ---------- días de juego de la categoría ---------- */
+.daychip{min-width:58px; text-align:center}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" data-auto-replace-svg="nest" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
@@ -2203,7 +2241,7 @@ img.logo-dark{background:#11121c}
    STRIKEONE y todas las categorías en su temporada 1, con el calendario vacío.
    ============================================================ */
 
-const LEAGUE = { name: "Liga STRIKE ONE", sport: "", season: "19", year: "2026",
+const LEAGUE = { name: "Liga STRIKE ONE", sport: "Softbol", season: "19", year: "2026",
   contact: { facebook: "", instagram: "https://www.instagram.com/strikeone.app/", whatsapp: "667 325 5323", phone: "667 325 5323", address: "Culiacán, Sinaloa" } };
 const leagueFull = () => [LEAGUE.name, LEAGUE.sport].filter(Boolean).join(" ");
 
@@ -2213,13 +2251,13 @@ const LOGO = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA7cAAAO3CAYAAAD4ZLMD
 const TEAM_LOGOS = {};   // los equipos de la demo no tienen logo: se dibuja su escudo con iniciales
 
 const CATEGORIES = [
-  // field: campo · days: cuándo juega · times: horarios permitidos
+  // field: campo · days: días en que juega (0 = lunes … 6 = domingo) · times: horarios permitidos
   // shares: con quién comparte el campo (se reparten noches y horarios sin patrón fijo)
   // teams y active se llenan solos con los equipos inscritos (ver TEAMS)
-  { id: "avanzados",  name: "Avanzados",  field: "Campo 1", days: "Entre semana", times: ["19:00","21:00"], shares: "novatos" },
-  { id: "novatos",    name: "Novatos",    field: "Campo 1", days: "Entre semana", times: ["19:00","21:00"], shares: "avanzados" },
-  { id: "femenil",    name: "Femenil",    field: "Campo 2", days: "Entre semana", times: ["19:00","21:00"] },
-  { id: "dominical",  name: "Dominical",  field: "Campo 1", days: "Sábados y domingos", times: ["8:00","10:00","17:00","19:00","21:00"] },
+  { id: "avanzados",  name: "Avanzados",  field: "Campo 1", days: [0,1,2,3,4], times: ["19:00","21:00"], shares: "novatos" },
+  { id: "novatos",    name: "Novatos",    field: "Campo 1", days: [0,1,2,3,4], times: ["19:00","21:00"], shares: "avanzados" },
+  { id: "femenil",    name: "Femenil",    field: "Campo 2", days: [0,1,2,3,4], times: ["19:00","21:00"] },
+  { id: "dominical",  name: "Dominical",  field: "Campo 1", days: [5,6], times: ["8:00","10:00","17:00","19:00","21:00"] },
 ];
 const CATEGORIES_DEFAULT = JSON.stringify(CATEGORIES);   // al reiniciar, la liga vuelve a estas categorías
 /* Campos de juego de la liga; cada categoría juega en uno. */
@@ -2244,7 +2282,9 @@ function poClosed(catId){ return !!PLAYOFFS.cats[catId]; }
 const playoffsFor = catId => Math.min(SEASON.playoffs[catId] || 0, (TEAMS[catId] || []).length);
 
 /* Categoría que se abre por defecto: la única con roster y boxscores de ejemplo. */
-const mainCat   = () => CATEGORIES.find(c => c.id === "novatos") || CATEGORIES[0];
+/* Sin categorías (liga de prueba recién abierta): una de reserva para que ninguna pantalla falle. */
+const NO_CAT = { id: "", name: "Sin categoría", field: "", days: [0, 1, 2, 3, 4], times: ["19:00", "21:00"], teams: 0, active: false };
+const mainCat   = () => CATEGORIES.find(c => c.id === "novatos") || CATEGORIES[0] || NO_CAT;
 const activeCat = () => CATEGORIES.find(c => c.id === currentCat) || mainCat();
 
 /* Roster de ejemplo de Lobos de la Sierra; la línea de bateo es
@@ -2663,7 +2703,7 @@ const ADMIN_GROUPS = [
   { label: "Hojas y rol de juego",  icon: "fa-print",         ids: ["imprimir", "rol"] },
   { label: "Temporada y playoffs",  icon: "fa-trophy",        ids: ["temporada", "playoffs", "nuevatemporada"] },
   { label: "Categorías y equipos",  icon: "fa-people-group",  ids: ["campos", "categorias", "admequipos", "inscripciones"] },
-  { label: "Configuración del sitio", icon: "fa-sliders",     ids: ["estadisticas", "lideresconfig", "reglamento", "personalizar"] },
+  { label: "Configuración del sitio", icon: "fa-gear",     ids: ["estadisticas", "lideresconfig", "reglamento", "personalizar"] },
 ];
 const toolsIn = g => g.ids.map(id => ADMIN_TOOLS.find(t => t.id === id)).filter(Boolean);
 
@@ -2792,6 +2832,17 @@ function go(id){
   render(); window.scrollTo({ top:0 });
 }
 
+/* Ícono de la pestaña: el logo de la liga (el que se suba en Personalización o el de la demo). */
+function setFavicon(src){
+  if (!src) return;
+  let link = document.querySelector('link[rel="icon"]');
+  if (!link){ link = document.createElement("link"); link.rel = "icon"; document.head.appendChild(link); }
+  if (link.getAttribute("href") === src) return;
+  const mime = /^data:([^;,]+)/.exec(src);
+  link.type = mime ? mime[1] : "image/png";
+  link.setAttribute("href", src);
+}
+
 function render(){
   appsCache = new Map();
   document.querySelector(".shell").classList.toggle("fullpage", route !== "app");
@@ -2799,6 +2850,7 @@ function render(){
   const topbar = document.querySelector(".topbar");
   if (topbar) topbar.classList.remove("open");
   if (route !== "app") document.title = "STRIKEONE";
+  setFavicon(route === "app" ? (leagueLogo() || LOGO) : LOGO);
   if (route === "inicio"){ view.innerHTML = viewLanding(); return pushNav(); }
   if (route === "master"){ view.innerHTML = viewMaster(); return pushNav(); }
   renderChrome();
@@ -2806,7 +2858,7 @@ function render(){
   if (isVisitor() && ADMIN_SCREENS.includes(screen)) screen = "inicio";
   const locked = isLocked() && ADMIN_SCREENS.includes(screen);
   const adminArea = ADMIN_SCREENS.includes(screen) && screen !== "admin";
-  view.innerHTML = (adminArea ? adminBar() : "") + (locked ? viewLocked() : ({
+  view.innerHTML = (adminArea ? adminBar() : "") + (locked ? viewLocked() : !CATEGORIES.length && NEEDS_CATS.includes(screen) ? viewNoCats() : ({
     inicio: viewInicio, standing: viewStanding, equipos: viewEquipos,
     calendario: viewCalendario, lideres: viewLideres, juego: viewJuego, equipo: viewEquipo, playoffs: viewPlayoffs, admin: viewAdmin, capturar: viewCapturar,
     inscripciones: viewInscripciones, programar: viewProgramar, admequipos: viewAdminTeams, temporada: viewTemporada, nuevatemporada: viewNuevaTemporada, personalizar: viewPersonalizar,
@@ -2932,11 +2984,14 @@ function viewInicio(){
     <div class="homestand">${standCats.map(homeStandPanel).join("")}</div>` : ""}
 
     ${upcoming.length ? `<div class="panel">
-      <div class="panel-h"><h2 class="display">Próximos juegos</h2><span class="meta">Semana ${TODAY_WEEK}</span></div>
+      <div class="panel-h"><h2 class="display">Próximos juegos</h2><span class="meta">${(() => {
+        const ws = [...new Set(upcoming.map(g => g.w))].sort((a, b) => a - b);   // la semana de los juegos, no la semana en curso
+        return ws.length > 1 ? `Semanas ${ws[0]}–${ws[ws.length - 1]}` : `Semana ${ws[0]}`;
+      })()}</span></div>
       <ul class="upcoming" style="list-style:none; margin:0; padding:0">
         ${upcoming.map(g => `<li>
           <span class="date"><b class="num">${parseD(g.d).getUTCDate()}</b><span>${MESES[parseD(g.d).getUTCMonth()]}</span></span>
-          <span>${esc(g.a)} <span class="vs">vs</span> ${esc(g.b)}<br><span class="vs">${g.d === TODAY ? "Hoy" : DIAS[parseD(g.d).getUTCDay()]} · ${fmtHour(g.h)} · ${esc(catName(g.c))}</span></span>
+          <span>${esc(g.a)} <span class="vs">vs</span> ${esc(g.b)}<br><span class="vs">Semana ${g.w} · ${g.d === TODAY ? "Hoy" : DIAS[parseD(g.d).getUTCDay()]} · ${fmtHour(g.h)} · ${esc(catName(g.c))}</span></span>
         </li>`).join("")}
       </ul>
     </div>` : ""}
@@ -3438,6 +3493,22 @@ let openGame = null;             // juego con la hoja de anotación desplegada
 const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const DIAS  = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 const DAY_MS = 864e5;
+/* Días de juego de una categoría: 0 = lunes … 6 = domingo, en el orden de la semana del rol. */
+const WEEKDAYS = [0, 1, 2, 3, 4];
+const DAY_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const DAY_PLURAL = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábados", "domingos"];
+const catDays = c => Array.isArray(c.days) ? c.days : c.days === "Sábados y domingos" ? [5, 6] : WEEKDAYS;
+const dayOff = d => (new Date(d + "T12:00:00Z").getUTCDay() + 6) % 7;
+const playsOn = (c, d) => catDays(c).includes(dayOff(d));
+function daysText(days){
+  const s = [...new Set(days)].sort((a, b) => a - b);
+  const cap = t => t.charAt(0).toUpperCase() + t.slice(1);
+  if (!s.length) return "Sin días";
+  if (s.length === 7) return "Todos los días";
+  const one = i => DIAS[(i + 1) % 7].toLowerCase();
+  if (s.length >= 3 && s[s.length - 1] - s[0] === s.length - 1) return cap(`${one(s[0])} a ${one(s[s.length - 1])}`);
+  return cap(listJoin(s.map(i => DAY_PLURAL[i])));
+}
 const parseD = s => new Date(s + "T12:00:00Z");
 const fmtDay = s => { const d = parseD(s); return `${d.getUTCDate()} ${MESES[d.getUTCMonth()]}`; };
 const weekOf = s => Math.floor((parseD(s) - parseD(WEEK1)) / (7 * DAY_MS)) + 1;
@@ -3460,7 +3531,7 @@ function weekRange(w){
 /* Días, horarios y campo de cada categoría, como los fijó la liga. */
 function catSchedule(c){
   const parts = [];
-  if (c.days) parts.push(c.days);
+  parts.push(daysText(catDays(c)));
   if (c.times) parts.push(listJoin(c.times.map(fmtHour)));
   parts.push(c.field + (c.shares ? `, compartido con ${catName(c.shares)}` : ""));
   return parts.join(" · ");
@@ -3470,7 +3541,8 @@ function catSchedule(c){
 function fieldLine(){
   const byField = {};
   for (const c of CATEGORIES){
-    (byField[c.field] = byField[c.field] || []).push(c.days === "Sábados y domingos" ? `${c.name} (fines de semana)` : c.name);
+    const t = daysText(catDays(c));
+    (byField[c.field] = byField[c.field] || []).push(t === "Lunes a viernes" ? c.name : `${c.name} (${t.toLowerCase()})`);
   }
   return Object.entries(byField).map(([f, names]) => `${f}: ${listJoin(names)}`).join(" · ");
 }
@@ -4275,18 +4347,10 @@ let showSugg = false;            // las sugerencias van ocultas hasta que se pid
 /* El calendario llega hasta la última semana creada o con juegos. */
 const calWeeks = () => Math.max(WEEKS + createdWeeks, ...calGames().map(g => g.w));
 
-/* Días de la semana en que juega la categoría y primer horario libre de su campo. */
-/* Hay semanas en que una categoría de entre semana tiene que jugar sábado o domingo: en Programar
-   se abre el fin de semana con sus horarios, sin cambiar los días de la categoría. */
-let schedWeekend = false;
-const WEEKEND_HOURS = ["8:00", "10:00", "12:00", "15:00", "17:00", "19:00", "21:00"];
+/* Días de la semana en que juega la categoría (los que fijó la liga) y primer horario libre de su campo. */
 const hourMin = h => { const [a, b] = String(h).split(":"); return +a * 60 + (+b || 0); };
-const weekendCat = cat => cat.days === "Sábados y domingos";
-const weekDays = (cat, w) => (weekendCat(cat) ? [5, 6] : schedWeekend ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4]).map(off => dateInWeek(w, off));
-const timesFor = (cat, d) => {
-  const base = cat.times || ["19:00", "21:00"];
-  return d && !weekendCat(cat) && isWeekendDate(d) ? [...new Set([...WEEKEND_HOURS, ...base])].sort((x, y) => hourMin(x) - hourMin(y)) : base;
-};
+const weekDays = (cat, w) => catDays(cat).map(off => dateInWeek(w, off));
+const timesFor = cat => cat.times && cat.times.length ? cat.times : ["19:00", "21:00"];
 const busySlots = (cat, w) => new Set(calGames()
   .filter(g => g.w === w && fieldOf(g) === cat.field && g.st !== "NJ").map(g => g.d + "|" + g.h));
 function firstFree(cat, w){
@@ -4336,7 +4400,7 @@ function schedCheck(f){
   }
   if (f.d < TODAY) errors.push("Ese día ya pasó.");
   if (!timesFor(cat, f.d).includes(f.h)) errors.push(`${cat.name} juega a las ${listJoin(timesFor(cat, f.d).map(fmtHour))}.`);
-  if (f.d && isWeekendDate(f.d) && !weekendCat(cat)) warnings.push(`Fin de semana: ${cat.name} normalmente juega entre semana; este juego queda el ${DIAS[parseD(f.d).getUTCDay()].toLowerCase()} ${fmtDay(f.d)}.`);
+  if (f.d && !playsOn(cat, f.d)) errors.push(`${cat.name} juega ${daysText(catDays(cat)).toLowerCase()}.`);
 
   const games = calGames().filter(g => g.st !== "NJ");
   const clash = games.find(g => g.d === f.d && g.h === f.h && fieldOf(g) === cat.field);
@@ -4368,12 +4432,11 @@ function slotGrid(f){
   const closed = [...closedWeeks].sort((x, y) => x - y);
   return `
     <div class="slothead"><span>${esc(cat.field)} · semana ${f.w} · ${weekRange(f.w)}</span>
-      <span class="slotacts">${weekendCat(cat) ? ""
-        : `<label class="switch${schedWeekend ? " on" : ""}"><input type="checkbox" id="sch-weekend"${schedWeekend ? " checked" : ""}><span>Sábado y domingo</span></label>`}
+      <span class="slotacts">
         <button type="button" class="btn ghost closewk" data-closeweek="${f.w}"><i class="fa-solid fa-lock" aria-hidden="true"></i> Cerrar semana ${f.w}</button></span></div>
     <div class="slots" style="grid-template-columns:78px repeat(${times.length}, minmax(0,1fr))">
       <span></span>${times.map(h => `<span class="sh num">${fmtHour(h)}</span>`).join("")}
-      ${days.map(d => `<span class="sd${isWeekendDate(d) && !weekendCat(cat) ? " wkend" : ""}">${DIAS[parseD(d).getUTCDay()].slice(0, 3)} ${parseD(d).getUTCDate()}</span>` + times.map(h => {
+      ${days.map(d => `<span class="sd">${DIAS[parseD(d).getUTCDay()].slice(0, 3)} ${parseD(d).getUTCDate()}</span>` + times.map(h => {
         const g = games.find(x => x.d === d && x.h === h);
         const sel = f.d === d && f.h === h;
         if (g){
@@ -4397,6 +4460,7 @@ function slotErrors(g, d, h, others){
   const errors = [];
   if (d < TODAY) errors.push("ese día ya pasó.");
   if (closedWeeks.has(w)) errors.push(`la semana ${w} está cerrada.`);
+  if (!playsOn(cat, d)) errors.push(`${cat.name} juega ${daysText(catDays(cat)).toLowerCase()}.`);
   if (!timesFor(cat, d).includes(h)) errors.push(`${cat.name} juega a las ${listJoin(timesFor(cat, d).map(fmtHour))}.`);
   const clash = others.find(x => x.d === d && x.h === h && fieldOf(x) === cat.field);
   if (clash) errors.push(`el ${cat.field.toLowerCase()} ya tiene ${clash.a} vs ${clash.b} a esa hora.`);
@@ -4429,7 +4493,7 @@ function moveGame(id, d, h){
   }
   const cat = CATEGORIES.find(c => c.id === g.c) || mainCat();
   render();
-  toast(`Movido: ${g.a} vs ${g.b} · ${whenText(d, h)}${isWeekendDate(d) && !weekendCat(cat) ? " · fin de semana" : ""}`);
+  toast(`Movido: ${g.a} vs ${g.b} · ${whenText(d, h)}`);
 }
 
 /* Soltar un juego sobre otro: los dos intercambian día y hora. */
@@ -4507,12 +4571,13 @@ function pairScore(catId, S, a, b, week){
   return { a, b, c: catId, score: Math.round(score), reasons };
 }
 
-/* Arma la semana elegida por campo, respetando lo que ya está programado en ella: primero
+/* Arma la semana elegida por campo en los días y horarios de cada categoría, primero entre semana,
+   respetando lo que ya está programado en ella: primero
    un juego para cada equipo y luego segundos juegos, nadie dos veces la misma noche,
    alternando el horario de su último juego. */
 function suggestWeek(week){
   const fields = {};
-  for (const c of CATEGORIES.filter(c => c.active && c.days !== "Sábados y domingos" && !poClosed(c.id)))
+  for (const c of CATEGORIES.filter(c => c.active && !poClosed(c.id)))
     (fields[c.field] = fields[c.field] || []).push(c.id);
 
   return Object.entries(fields).map(([field, cats]) => {
@@ -4526,12 +4591,16 @@ function suggestWeek(week){
     }
     pool.sort((x, y) => y.score - x.score);
 
-    const slots = [];
-    for (let dow = 0; dow < 5; dow++) for (const h of ["19:00", "21:00"]){
-      const d = dateInWeek(week, dow);
-      if (d >= TODAY) slots.push({ d, h });
+    const bySlot = new Map();   // cada horario del campo, con las categorías que pueden jugar en él
+    for (const catId of cats){
+      const cat = CATEGORIES.find(c => c.id === catId);
+      for (const d of weekDays(cat, week)) if (d >= TODAY) for (const h of timesFor(cat)){
+        if (!bySlot.has(d + h)) bySlot.set(d + h, { d, h, cats: new Set() });
+        bySlot.get(d + h).cats.add(catId);
+      }
     }
-    const existing = calGames().filter(g => g.w === week && fieldOf(g) === field && g.st !== "NJ" && !isWeekendDate(g.d));
+    const slots = [...bySlot.values()];
+    const existing = calGames().filter(g => g.w === week && fieldOf(g) === field && g.st !== "NJ");
     const taken = new Set(existing.map(g => g.d + g.h)), night = new Set(), count = {}, used = new Set(), picked = [];
     const CAP = slots.filter(sl => !taken.has(sl.d + sl.h)).length;
     const extra = {};
@@ -4556,8 +4625,8 @@ function suggestWeek(week){
       if (i === picked.length) return true;
       const p = picked[i];
       const opts = slots
-        .filter(sl => !taken.has(sl.d + sl.h) && !night.has(p.a + sl.d) && !night.has(p.b + sl.d))
-        .sort((x, y) => alternates(p, y) - alternates(p, x) || (x.d + x.h).localeCompare(y.d + y.h));
+        .filter(sl => sl.cats.has(p.c) && !taken.has(sl.d + sl.h) && !night.has(p.a + sl.d) && !night.has(p.b + sl.d))
+        .sort((x, y) => isWeekendDate(x.d) - isWeekendDate(y.d) || alternates(p, y) - alternates(p, x) || x.d.localeCompare(y.d) || hourMin(x.h) - hourMin(y.h));
       for (const sl of opts){
         taken.add(sl.d + sl.h); night.add(p.a + sl.d); night.add(p.b + sl.d);
         p.d = sl.d; p.h = sl.h;
@@ -4615,7 +4684,7 @@ function suggestionsBlock(week){
         <li><b class="num">−${W.parejo}</b><span><b>Nivel.</b> Se resta según la diferencia en porcentaje de ganados: se prefieren juegos parejos.</span></li>
         <li><b class="num">+${W.suspendido}</b><span><b>Suspendidos.</b> Un juego que no se jugó tiene prioridad para reprogramarse.</span></li>
       </ul>
-      <p class="critfoot">Además, cada equipo juega una sola vez en la semana${suggRepeat ? " y después se completan los horarios con segundos juegos" : ""}; nadie juega dos veces la misma noche; se alterna el horario respecto al último juego de cada equipo; se respetan los juegos ya programados esa semana; nadie pasa de sus <b>juegos de temporada regular</b> (<button class="linkbtn" data-go="temporada">cambiar</button>); y quedan fuera los equipos con <b>${plural(duesWeeks, "semana", "semanas")} o más sin cubrir su inscripción</b> (<button class="linkbtn" data-go="inscripciones">cambiar la regla</button>).</p>
+      <p class="critfoot">Además, cada equipo juega una sola vez en la semana${suggRepeat ? " y después se completan los horarios con segundos juegos" : ""}; nadie juega dos veces la misma noche; se alterna el horario respecto al último juego de cada equipo; los juegos van en los días y horarios de cada categoría, primero entre semana; se respetan los juegos ya programados esa semana; nadie pasa de sus <b>juegos de temporada regular</b> (<button class="linkbtn" data-go="temporada">cambiar</button>); y quedan fuera los equipos con <b>${plural(duesWeeks, "semana", "semanas")} o más sin cubrir su inscripción</b> (<button class="linkbtn" data-go="inscripciones">cambiar la regla</button>).</p>
     </div>
 
     ${plan.map(f => `
@@ -4634,7 +4703,7 @@ function suggestionsBlock(week){
     </section>`).join("")}`;
 }
 
-/* Etiquetas de un juego programado: revancha o rival nuevo, suspendido por reprogramar, fin de semana,
+/* Etiquetas de un juego programado: revancha o rival nuevo, suspendido por reprogramar, fuera de sus días,
    equipos con varios juegos en la semana o sin cubrir su inscripción. */
 function schedTags(g){
   const cat = CATEGORIES.find(c => c.id === g.c) || mainCat();
@@ -4645,7 +4714,7 @@ function schedTags(g){
   const met = games.filter(x => vs(x) && x.st !== "NJ" && before(x));
   tags.push(met.length ? { t: met.length === 1 ? `Revancha · ya jugaron el ${fmtDay(met[0].d)}` : `Revancha · ${met.length + 1}º enfrentamiento`, neg: true } : { t: "Rival nuevo" });
   if (games.some(x => vs(x) && x.st === "NJ")) tags.push({ t: "Reprograma un juego suspendido" });
-  if (isWeekendDate(g.d) && !weekendCat(cat)) tags.push({ t: "Fin de semana", neg: true });
+  if (!playsOn(cat, g.d)) tags.push({ t: "Fuera de sus días", neg: true });
   for (const t of [g.a, g.b]){
     const n = games.filter(x => x.w === g.w && x.st !== "NJ" && (x.a === t || x.b === t)).length + 1;
     if (n >= 2) tags.push({ t: `${t}: ${n} juegos en la semana`, neg: n > 2 });
@@ -4669,7 +4738,8 @@ function unscheduleGame(id){
 
 function viewProgramar(){
   const openCats = CATEGORIES.filter(c => !poClosed(c.id));
-  if (!openCats.some(c => c.active) || (schedMode === "playoffs" && CATEGORIES.some(c => poClosed(c.id)))) return viewProgramarPlayoffs();
+  const anyClosed = CATEGORIES.some(c => poClosed(c.id));   // sin categorías cerradas siempre es temporada regular (aunque aún no haya equipos)
+  if (anyClosed && (!openCats.some(c => c.active) || schedMode === "playoffs")) return viewProgramarPlayoffs();
   if (schedForm.po || poClosed(schedForm.cat)) schedForm = defaultSchedForm();
   if (closedWeeks.has(schedForm.w)){
     const w = openWeekFrom(schedForm.w);
@@ -5438,7 +5508,7 @@ function playoffSchedCheck(f){
   }
   if (f.d < TODAY) errors.push("Ese día ya pasó.");
   if (!timesFor(cat, f.d).includes(f.h)) errors.push(`${cat.name} juega a las ${listJoin(timesFor(cat, f.d).map(fmtHour))}.`);
-  if (f.d && isWeekendDate(f.d) && !weekendCat(cat)) warnings.push(`Fin de semana: ${cat.name} normalmente juega entre semana; este juego queda el ${DIAS[parseD(f.d).getUTCDay()].toLowerCase()} ${fmtDay(f.d)}.`);
+  if (f.d && !playsOn(cat, f.d)) errors.push(`${cat.name} juega ${daysText(catDays(cat)).toLowerCase()}.`);
   const games = calGames().filter(g => g.st !== "NJ");
   const clash = games.find(g => g.d === f.d && g.h === f.h && fieldOf(g) === cat.field);
   if (clash) errors.push(`El ${cat.field.toLowerCase()} ya tiene ${clash.a} vs ${clash.b} (${catName(clash.c)}) a esa hora.`);
@@ -6578,8 +6648,10 @@ const replaceArr = (target, source) => { target.length = 0; target.push(...sourc
 /* Carga los datos de la liga activa: la demo de Valle Alto o una liga vacía. */
 function restoreLeagueData(){
   const demo = appMode === "demo" ? JSON.parse(DEMO_SNAPSHOT) : null;
-  replaceArr(CATEGORIES, JSON.parse(CATEGORIES_DEFAULT));
-  replaceArr(FIELDS, JSON.parse(FIELDS_DEFAULT));
+  replaceArr(CATEGORIES, demo ? JSON.parse(CATEGORIES_DEFAULT) : []);   // la liga de prueba arranca sin categorías
+  replaceArr(FIELDS, demo ? JSON.parse(FIELDS_DEFAULT) : []);           // ni campos
+  currentCat = teamCat = leadCat = teamAdminCat = payCat = mainCat().id;
+  poCat = null;
   fieldForm = null;
   for (const k of Object.keys(TEAMS)) if (!CATEGORIES.some(c => c.id === k)) delete TEAMS[k];
   catForm = null;
@@ -6658,10 +6730,11 @@ const LOCK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" str
 
 /* Rutas: #inicio, #demo, #liga y #master. La ruta vive en memoria; la URL solo se
    actualiza cuando el entorno lo permite (en vistas incrustadas no siempre se puede). */
+let loadedMode = null;           // liga cuyos datos ya se cargaron: la primera entrada a la demo también la reinicia
 function applyRoute(h){
   if (h === "demo" || h === "liga"){
-    if (!booted || h !== appMode){
-      appMode = h;
+    if (h !== loadedMode){
+      appMode = loadedMode = h;
       screen = "inicio";
       resetDemo(true);
     }
@@ -6673,7 +6746,14 @@ function applyRoute(h){
   render();
   window.scrollTo({ top: 0 });
 }
-function openRoute(h){ applyRoute(h); }
+/* Entrar a una liga desde la pantalla de entrada siempre abre su Inicio, en la temporada actual. */
+function openRoute(h){
+  if (h === "demo" || h === "liga"){
+    if (viewingSeason) viewSeason("actual", true);
+    screen = "inicio";
+  }
+  applyRoute(h);
+}
 
 /* ---------------- historial del navegador ---------------- */
 /* Cada pantalla tiene su dirección (#demo/standing, #demo/equipo/Tiburones, #demo/temporada-18/playoffs)
@@ -6920,10 +7000,22 @@ function renderFooter(){
 function adminBar(){
   return `<nav class="adminbar" aria-label="Herramientas del administrador">
     <button type="button" class="adminbar-home" data-go="admin"><i class="fa-solid fa-sliders" aria-hidden="true"></i><span>Ajustes</span></button>
-    <div class="adminbar-tabs">${ADMIN_GROUPS.map(g => `<div class="admgroup" role="group" aria-label="${g.label}">${toolsIn(g).map(t =>
-      `<button type="button" class="admtab" data-go="${t.id}" aria-current="${navCurrent(t.id)}"><i class="fa-solid ${t.icon}" aria-hidden="true"></i><span>${t.label}</span></button>`).join("")}</div>`).join(`<span class="admsep" aria-hidden="true"></span>`)}</div>
+    <div class="adminbar-groups">${ADMIN_GROUPS.map((g, i) => {
+      const tools = toolsIn(g), current = tools.some(t => navCurrent(t.id));
+      return `<div class="admgrp${current ? " current" : ""}">
+        <button type="button" class="admgrp-btn" data-admmenu="${i}" aria-expanded="false" aria-haspopup="true">
+          <i class="fa-solid ${g.icon}" aria-hidden="true"></i><span>${g.label}</span><i class="fa-solid fa-chevron-down caret" aria-hidden="true"></i></button>
+        <div class="admgrp-menu" role="menu" aria-label="${g.label}"><p class="admgrp-title">${g.label}</p>${tools.map(t =>
+          `<button type="button" role="menuitem" class="admtab" data-go="${t.id}" aria-current="${navCurrent(t.id)}"><i class="fa-solid ${t.icon}" aria-hidden="true"></i><span>${t.label}</span></button>`).join("")}</div>
+      </div>`;
+    }).join("")}</div>
   </nav>`;
 }
+const closeAdminMenus = () => document.querySelectorAll(".admgrp.open").forEach(x => {
+  x.classList.remove("open");
+  const b = x.querySelector(".admgrp-btn");
+  if (b) b.setAttribute("aria-expanded", "false");
+});
 
 /* Ajustes de administrador: lo pendiente y una tarjeta por herramienta. */
 function viewAdmin(){
@@ -7062,15 +7154,39 @@ function viewLocked(){
   </div>`;
 }
 
+/* Pantallas que no tienen sentido sin categorías: muestran cómo empezar. */
+const NEEDS_CATS = ["standing", "equipos", "lideres", "programar", "capturar", "admequipos", "inscripciones", "temporada", "nuevatemporada", "imprimir", "rol"];
+function viewNoCats(){
+  const titles = { standing: "Tabla de posiciones", equipos: "Equipos", lideres: "Líderes", programar: "Programar juegos",
+    capturar: capMode === "corregir" ? "Corregir resultado" : "Capturar resultado", admequipos: "Administrar equipos", inscripciones: "Inscripciones",
+    temporada: "Temporada", nuevatemporada: "Nueva temporada", imprimir: "Hoja de anotación", rol: "Rol de juego" };
+  const admin = !isVisitor();
+  return `<div class="screen">
+    <div class="page-head">
+      <div>
+        <p class="eyebrow">${esc(leagueFull())}</p>
+        <h1>${titles[screen] || "Sin categorías"}</h1>
+      </div>
+    </div>
+    <div class="panel"><div class="empty">
+      <strong>Todavía no hay categorías</strong>
+      ${admin ? `<button type="button" class="btn primary" data-go="${FIELDS.length ? "categorias" : "campos"}" style="margin-top:8px">${FIELDS.length ? "Crear categoría" : "Dar de alta un campo"}</button>` : ""}
+    </div></div>
+  </div>`;
+}
+
 function onboardingPanel(){
+  const steps = [
+    !FIELDS.length && ["Da de alta un campo", "Nombre y ubicación de donde se juega.", "campos", "Campos"],
+    !CATEGORIES.length && ["Crea las categorías", "Días, horarios y el campo de cada una.", "categorias", "Categorías"],
+    ["Da de alta los equipos", "Nombre, categoría, logo, manager y jugadores.", "admequipos", "Administrar equipos"],
+    ["Marca las inscripciones", "Qué equipos ya cubrieron su pago.", "inscripciones", "Inscripciones"],
+    ["Programa la primera semana", "Días, horas y campo de cada juego.", "programar", "Programar juegos"],
+    ["Captura los resultados", "La tabla, el calendario y los líderes se llenan solos.", "capturar", "Capturar juego"],
+  ].filter(Boolean);
   return `<div class="panel onboarding">
     <div class="panel-h"><h2 class="display">Primeros pasos</h2><span class="meta">Tu liga todavía está vacía</span></div>
-    <ol class="steps">
-      <li><b>Da de alta los equipos</b><span>Nombre, categoría, logo, manager y jugadores.</span><button class="linkbtn" data-go="admequipos">Administrar equipos →</button></li>
-      <li><b>Marca las inscripciones</b><span>Qué equipos ya cubrieron su pago.</span><button class="linkbtn" data-go="inscripciones">Inscripciones →</button></li>
-      <li><b>Programa la primera semana</b><span>Días, horas y campo de cada juego.</span><button class="linkbtn" data-go="programar">Programar juegos →</button></li>
-      <li><b>Captura los resultados</b><span>La tabla, el calendario y los líderes se llenan solos.</span><button class="linkbtn" data-go="capturar">Capturar juego →</button></li>
-    </ol>
+    <ol class="steps">${steps.map(([t, d, to, label]) => `<li><b>${t}</b><span>${d}</span><button class="linkbtn" data-go="${to}">${label} →</button></li>`).join("")}</ol>
   </div>`;
 }
 
@@ -7080,7 +7196,7 @@ const teamHasGames = team => calGames().some(g => g.a === team || g.b === team);
 
 function openTeamForm(team){
   if (!team){
-    teamForm = { original: null, name: "", cat: teamAdminCat, mgrKind: "otra", mgrPlayer: "", mgrName: "", roster: [], logo: null, confirmBaja: false };
+    teamForm = { original: null, name: "", cat: (CATEGORIES.find(c => c.id === teamAdminCat) || mainCat()).id, mgrKind: "otra", mgrPlayer: "", mgrName: "", roster: [], logo: null, confirmBaja: false };
     return;
   }
   const roster = (ROSTERS[team] || []).slice();
@@ -7418,7 +7534,7 @@ function viewCampos(){
 
 /* ---------------- categorías ---------------- */
 const HOURS = Array.from({ length: 17 }, (_, i) => `${i + 6}:00`);   // de 6:00 AM a 10:00 PM
-const DAY_OPTS = ["Entre semana", "Sábados y domingos"];
+
 const hourKey = h => { const [a, b] = String(h).split(":"); return +a * 60 + (+b || 0); };
 let catForm = null;              // categoría que se está creando o editando
 
@@ -7428,8 +7544,8 @@ const catHasData = id => (TEAMS[id] || []).length > 0 || calGames().some(g => g.
 function openCatForm(id){
   const c = id ? CATEGORIES.find(x => x.id === id) : null;
   catForm = c
-    ? { original: c.id, name: c.name, field: c.field, days: c.days || DAY_OPTS[0], times: (c.times || []).slice(), shares: c.shares || "", season: seasonOf(c.id).season, confirmDel: false }
-    : { original: null, name: "", field: (FIELDS[0] || {}).name || "", days: DAY_OPTS[0], times: ["19:00", "21:00"], shares: "", season: "1", confirmDel: false };
+    ? { original: c.id, name: c.name, field: c.field, days: catDays(c).slice(), times: (c.times || []).slice(), shares: c.shares || "", season: seasonOf(c.id).season, confirmDel: false }
+    : { original: null, name: "", field: (FIELDS[0] || {}).name || "", days: WEEKDAYS.slice(), times: ["19:00", "21:00"], shares: "", season: "1", confirmDel: false };
 }
 
 function catChecks(f){
@@ -7437,8 +7553,9 @@ function catChecks(f){
   const name = normName(f.name), field = normName(f.field);
   if (!name) errors.push("Escribe el nombre de la categoría.");
   else if (CATEGORIES.some(c => c.id !== f.original && nameKey(c.name) === nameKey(name))) errors.push(`Ya existe la categoría ${name}.`);
-  if (!field) errors.push("Elige el campo donde juega.");
+  if (!field) errors.push(FIELDS.length ? "Elige el campo donde juega." : "Primero da de alta un campo en Campos.");
   else if (!fieldInfo(field)) errors.push(`${field} ya no existe: elige otro campo.`);
+  if (!f.days.length) errors.push("Elige al menos un día.");
   if (!f.times.length) errors.push("Elige al menos un horario.");
   if (!f.original && !normName(f.season)) errors.push("Escribe la temporada con que arranca.");
   if (f.shares){
@@ -7451,7 +7568,7 @@ function catChecks(f){
     const games = calGames().filter(g => g.c === c.id);
     const pending = games.filter(g => g.st === "P");
     if (field && nameKey(field) !== nameKey(c.field) && games.length) warnings.push(`Sus ${plural(games.length, "juego", "juegos")} del calendario pasan al ${field}.`);
-    if (pending.some(g => !f.times.includes(g.h)) || (f.days !== c.days && pending.length))
+    if (pending.some(g => !f.times.includes(g.h)) || (daysText(f.days) !== daysText(catDays(c)) && pending.length))
       warnings.push(`${plural(pending.length, "juego programado se queda", "juegos programados se quedan")} con su día y hora actuales.`);
   }
   return { errors, warnings };
@@ -7478,7 +7595,7 @@ function saveCategory(){
     const base = slugOf(name) || "categoria";
     let id = base, n = 2;
     while (byId(id) || TEAMS[id]) id = `${base}-${n++}`;
-    c = { id, name, field, days: f.days, times, teams: 0, active: false };
+    c = { id, name, field, days: f.days.slice().sort((a, b) => a - b), times, teams: 0, active: false };
     CATEGORIES.push(c);
     TEAMS[id] = [];
     SEASON.regular[id] = SEASON_DEFAULT.games;
@@ -7486,7 +7603,7 @@ function saveCategory(){
     CAT_SEASONS[id] = { season: normName(f.season), year: LEAGUE.year };
   } else {
     c = byId(f.original);
-    Object.assign(c, { name, field, days: f.days, times });
+    Object.assign(c, { name, field, days: f.days.slice().sort((a, b) => a - b), times });
   }
   const unshare = x => {
     if (!x || !x.shares) return;
@@ -7549,8 +7666,8 @@ function catEditor(f){
         </div>
       </section>
       <section class="tsec">
-        <h3 class="tsec-h display">Días de juego</h3>
-        <div class="segmented" role="radiogroup" aria-label="Días de juego">${DAY_OPTS.map(d => `<button type="button" class="seg" role="radio" aria-checked="${f.days === d}" data-catdays="${esc(d)}">${d}</button>`).join("")}</div>
+        <h3 class="tsec-h display">Días de juego <span class="n">${f.days.length}</span></h3>
+        <div class="hourpick">${DAY_SHORT.map((d, i) => `<button type="button" class="hourchip daychip" role="checkbox" aria-checked="${f.days.includes(i)}" data-catday="${i}">${d}</button>`).join("")}</div>
       </section>
       <section class="tsec">
         <h3 class="tsec-h display">Horarios <span class="n">${f.times.length}</span></h3>
@@ -8366,6 +8483,14 @@ function toast(msg, warn){
 
 /* ---------------- eventos ---------------- */
 document.addEventListener("click", e => {
+  const admMenuBtn = e.target.closest("[data-admmenu]");
+  if (admMenuBtn){
+    const grp = admMenuBtn.closest(".admgrp"), willOpen = !grp.classList.contains("open");
+    closeAdminMenus();
+    if (willOpen){ grp.classList.add("open"); admMenuBtn.setAttribute("aria-expanded", "true"); }
+    return;
+  }
+  if (!e.target.closest(".admgrp-menu")) closeAdminMenus();
   const soScroll = e.target.closest("[data-soscroll]");
   if (soScroll){
     const target = document.getElementById("so-" + soScroll.dataset.soscroll);
@@ -8526,8 +8651,12 @@ document.addEventListener("click", e => {
   const catEdit = e.target.closest("[data-catedit]");
   if (catEdit){ openCatForm(catEdit.dataset.catedit); return render(); }
   if (catForm){
-    const catDays = e.target.closest("[data-catdays]");
-    if (catDays){ catForm.days = catDays.dataset.catdays; return render(); }
+    const catDay = e.target.closest("[data-catday]");
+    if (catDay){
+      const i = +catDay.dataset.catday;
+      catForm.days = catForm.days.includes(i) ? catForm.days.filter(x => x !== i) : [...catForm.days, i].sort((a, b) => a - b);
+      return render();
+    }
     const catTime = e.target.closest("[data-cattime]");
     if (catTime){
       const h = catTime.dataset.cattime;
@@ -9202,12 +9331,7 @@ document.addEventListener("change", e => {
     schedForm = { cat: cat.id, w, a: keepTeams ? schedForm.a : "", b: keepTeams ? schedForm.b : "", ...firstFree(cat, w), po: keepTeams ? schedForm.po : null };
     return render();
   }
-  if (e.target.id === "sch-weekend"){
-    schedWeekend = e.target.checked;
-    const cat = CATEGORIES.find(c => c.id === schedForm.cat) || mainCat();
-    if (!schedWeekend && schedForm.d && isWeekendDate(schedForm.d) && !weekendCat(cat)) Object.assign(schedForm, firstFree(cat, schedForm.w));
-    return render();
-  }
+
   if (e.target.id === "sch-d"){
     const cat = CATEGORIES.find(c => c.id === schedForm.cat) || mainCat();
     const busy = busySlots(cat, schedForm.w);
@@ -9247,6 +9371,7 @@ document.addEventListener("change", e => {
 });
 
 document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeAdminMenus();
   if (e.key === "Enter" && e.target.id === "tf-newplayer"){ e.preventDefault(); addPlayerFromInput(); }
 });
 let dragGameId = null;

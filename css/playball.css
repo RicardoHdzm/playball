@@ -2119,3 +2119,41 @@ img.logo-dark{background:#11121c}
   .so-login-brand .so-word{font-size:44px}
 }
 .demolink .somark.inline{letter-spacing:.02em}
+
+/* ---------- playoffs: iniciales centradas en el escudo ----------
+   .po-name > span y .po-champ-team b son para el nombre; el escudo también es span con <b>. */
+.po-name > .crest{display:grid; place-items:center; flex-direction:initial; overflow:visible; white-space:normal}
+.po-champ-team .crest b{font-family:"Archivo",sans-serif; font-variation-settings:"wdth" 112; font-weight:900; font-size:inherit; line-height:1; margin-top:-.18em}
+
+/* ---------- liga sin campos ni categorías: sin listas vacías ---------- */
+.tadmlist:empty{display:none}
+
+/* ---------- barra de administración: un menú por grupo, sin scroll ---------- */
+.adminbar{overflow:visible; flex-wrap:wrap; position:relative; z-index:25}
+.adminbar-groups{display:flex; flex-wrap:wrap; align-items:center; gap:4px; flex:1 1 auto; min-width:0}
+.admgrp{position:relative}
+.admgrp-btn{display:flex; align-items:center; gap:8px; padding:9px 12px; border:0; border-radius:8px; background:none; color:var(--ink-2); font:inherit; font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer}
+.admgrp-btn i{color:var(--ink-3)}
+.admgrp-btn .caret{font-size:10px; margin-left:2px; transition:transform .15s ease}
+.admgrp-btn:hover{background:var(--ground); color:var(--ink)}
+.admgrp.current .admgrp-btn{background:var(--accent-tint); color:var(--accent-ink); font-weight:600}
+.admgrp.current .admgrp-btn i{color:var(--accent-ink)}
+.admgrp.open .admgrp-btn{background:var(--ground); color:var(--ink)}
+.admgrp.open .caret{transform:rotate(180deg)}
+.admgrp-menu{display:none; position:absolute; top:calc(100% + 6px); left:0; z-index:40; min-width:240px; padding:6px; flex-direction:column; gap:2px; border-radius:12px; background:var(--raised); border:1px solid var(--line); box-shadow:0 18px 40px -18px rgba(0,0,0,.45)}
+.admgrp.open .admgrp-menu{display:flex}
+.admgrp:nth-last-child(-n+2) .admgrp-menu{left:auto; right:0}
+.admgrp-menu .admtab{width:100%; justify-content:flex-start}
+.admgrp-title{display:none; margin:4px 8px 6px; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3)}
+@media (max-width:640px){
+  .adminbar{flex-wrap:nowrap; gap:4px}
+  .adminbar-home span, .admgrp-btn span{display:none}
+  .adminbar-groups{flex-wrap:nowrap; justify-content:space-between; gap:2px}
+  .admgrp{position:static}
+  .admgrp-btn{gap:5px; padding:10px 9px}
+  .admgrp-menu, .admgrp:nth-last-child(-n+2) .admgrp-menu{left:0; right:0; min-width:0}
+  .admgrp-title{display:block}
+}
+
+/* ---------- días de juego de la categoría ---------- */
+.daychip{min-width:58px; text-align:center}
