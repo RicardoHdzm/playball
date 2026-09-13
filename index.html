@@ -4977,12 +4977,12 @@ const soWord = () => `<span class="so-word">STRIKE<b>ONE</b></span>`;
 
 /* Entrada de STRIKEONE: la marca y dos accesos, la liga demo y la liga vacía de prueba. */
 function viewLanding(){
-  document.title = "STRIKEONE · Software a la medida para tu liga";
+  document.title = "STRIKEONE · Llevamos tu liga al siguiente nivel";
   return `<div class="so-site so-login-page">
     <main class="so-login-wrap">
       <div class="so-login-brand">
         ${SO_MARK}${soWord()}
-        <p class="so-tag">Software a la medida para tu liga</p>
+        <p class="so-tag">Llevamos tu liga al siguiente nivel</p>
       </div>
       <div class="so-entry">
         <button type="button" class="so-btn primary block" data-route="demo"><i class="fa-solid fa-play" aria-hidden="true"></i> DEMO STRIKE ONE</button>
@@ -5699,14 +5699,13 @@ function applyTheme(mode){
 /* Cada color trae sus tonos para tema claro y oscuro, y los que se usan sobre fondos oscuros
    (navbar, portada, barra de demo). Amarillo lleva texto oscuro encima para que se lea. */
 const ACCENTS = [
-  { id:"lima",     name:"Lima",     note:"Predeterminado", accent:"#D9FF3A", rgb:"217,255,58", ink:"#4D5E00", inkDark:"#D9FF3A", tint:"#F3FFCC", tintDark:"#23290B", on:"#11121C", soft:"#EAFF96", deep:"#11121C", deepInk:"#E9FFA3" },
-  { id:"rojo",     name:"Rojo",     accent:"#C8102E", rgb:"200,16,46",  ink:"#B00E28", inkDark:"#FF6B7F", tint:"#FCE3E6", tintDark:"#300A10", on:"#FFFFFF", soft:"#FFB3BD", deep:"#33070E", deepInk:"#FFD9DE" },
-  { id:"azul",     name:"Azul",     accent:"#1D4ED8", rgb:"29,78,216",  ink:"#1D4ED8", inkDark:"#8AB0FF", tint:"#E3EBFD", tintDark:"#0E1A3A", on:"#FFFFFF", soft:"#B7CBFF", deep:"#0B1633", deepInk:"#D6E1FF" },
-  { id:"verde",    name:"Verde",    accent:"#15803D", rgb:"21,128,61",  ink:"#15803D", inkDark:"#4ADE80", tint:"#DCF3E4", tintDark:"#0B2616", on:"#FFFFFF", soft:"#A7F0C0", deep:"#06220F", deepInk:"#CFF5DC" },
-  { id:"amarillo", name:"Amarillo", accent:"#EAB308", rgb:"234,179,8",  ink:"#8A6400", inkDark:"#F5C94A", tint:"#FDF4D3", tintDark:"#2E2505", on:"#1A1400", soft:"#F7D774", deep:"#2B2204", deepInk:"#FBEBB5" },
-  { id:"naranja",  name:"Naranja",  accent:"#EA580C", rgb:"234,88,12",  ink:"#C2410C", inkDark:"#FB923C", tint:"#FFEDD5", tintDark:"#331606", on:"#FFFFFF", soft:"#FDBA74", deep:"#2E1203", deepInk:"#FFE3CC" },
-  { id:"rosa",     name:"Rosa",     accent:"#DB2777", rgb:"219,39,119", ink:"#BE185D", inkDark:"#F472B6", tint:"#FCE7F3", tintDark:"#33091D", on:"#FFFFFF", soft:"#F9A8D4", deep:"#2E0A1C", deepInk:"#FFD6EA" },
-  { id:"tinto",    name:"Tinto",    accent:"#991733", rgb:"153,23,51", ink:"#991733", inkDark:"#E36A85", tint:"#F8E4E9", tintDark:"#2B0E16", on:"#FFF2F5", soft:"#F0B9C6", deep:"#2A0B13", deepInk:"#F3D6DD" },
+  { id:"lima",     name:"StrikeOne",     note:"Predeterminado", accent:"#D9FF3A", rgb:"217,255,58", ink:"#4D5E00", inkDark:"#D9FF3A", tint:"#F3FFCC", tintDark:"#23290B", on:"#11121C", soft:"#EAFF96", deep:"#11121C", deepInk:"#E9FFA3" },
+  { id:"rojo",     name:"StrikeRed",     accent:"#ff3a4a", rgb:"200,16,46",  ink:"#B00E28", inkDark:"#FF6B7F", tint:"#FCE3E6", tintDark:"#300A10", on:"#FFFFFF", soft:"#FFB3BD", deep:"#33070E", deepInk:"#FFD9DE" },
+  { id:"azul",     name:"StrikeBlue",     accent:"#3a8dff", rgb:"29,78,216",  ink:"#1D4ED8", inkDark:"#8AB0FF", tint:"#E3EBFD", tintDark:"#0E1A3A", on:"#FFFFFF", soft:"#B7CBFF", deep:"#0B1633", deepInk:"#D6E1FF" },
+  { id:"verde",    name:"Verde",    accent:"#00bd4d", rgb:"21,128,61",  ink:"#15803D", inkDark:"#4ADE80", tint:"#DCF3E4", tintDark:"#0B2616", on:"#FFFFFF", soft:"#A7F0C0", deep:"#06220F", deepInk:"#CFF5DC" },
+  { id:"amarillo", name:"StrikeYellow", accent:"#ffe13a", rgb:"234,179,8",  ink:"#8A6400", inkDark:"#F5C94A", tint:"#FDF4D3", tintDark:"#2E2505", on:"#1A1400", soft:"#F7D774", deep:"#2B2204", deepInk:"#FBEBB5" },
+  { id:"naranja",  name:"Naranja",  accent:"#ff8a3a", rgb:"234,88,12",  ink:"#C2410C", inkDark:"#FB923C", tint:"#FFEDD5", tintDark:"#331606", on:"#FFFFFF", soft:"#FDBA74", deep:"#2E1203", deepInk:"#FFE3CC" },
+  { id:"tinto",    name:"StrikePink",    accent:"#d93a68", rgb:"153,23,51", ink:"#991733", inkDark:"#E36A85", tint:"#F8E4E9", tintDark:"#2B0E16", on:"#FFF2F5", soft:"#F0B9C6", deep:"#2A0B13", deepInk:"#F3D6DD" },
 ];
 let accentId = "lima";
 let brandForm = null;            // personalización en curso, sin guardar

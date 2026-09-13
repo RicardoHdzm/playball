@@ -10,6 +10,18 @@
         "5178"
       ],
       "port": 5178
+    },
+    {
+      "name": "strikeone-app",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\PC PRIDE ICUE 004\\OneDrive\\Documentos\\GitHub\\strikeone-app\\node_modules\\vite\\bin\\vite.js",
+        "C:\\Users\\PC PRIDE ICUE 004\\OneDrive\\Documentos\\GitHub\\strikeone-app",
+        "--port",
+        "5180",
+        "--strictPort"
+      ],
+      "port": 5180
     }
   ]
 }
